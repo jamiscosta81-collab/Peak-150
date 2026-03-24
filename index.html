@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peak150 PRO v8 - Relatório Automático</title>
+<style>
+:root{
+  --bg:#0f141c;--bg2:#171d28;--card:#202838;--line:#334155;--txt:#e7edf7;
+  --muted:#99a6bc;--blue:#39a0ff;--green:#23c16b;--yellow:#f5c451;--red:#ff5d5d;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#0c1118,#111827 35%,#0f141c);color:var(--txt)}
+header{padding:14px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(15,20,28,.96);backdrop-filter:blur(6px);z-index:20}
+header h1{margin:0;font-size:20px}
+header p{margin:4px 0 0;color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:6px;overflow:auto;padding:10px 10px 0;background:rgba(15,20,28,.96);position:sticky;top:63px;z-index:19;border-bottom:1px solid var(--line)}
+.tabs button{border:1px solid var(--line);background:var(--bg2);color:var(--txt);padding:10px 12px;border-radius:10px 10px 0 0;white-space:nowrap;cursor:pointer}
+.tabs button.active{background:var(--card);color:var(--blue)}
+main{padding:14px;max-width:1200px;margin:auto}
+.tab{display:none}.tab.active{display:block}
+.grid{display:grid;gap:12px}.grid.two{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),#1c2431);border:1px solid var(--line);border-radius:14px;padding:14px}
+.small{font-size:12px;color:var(--muted)}
+label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--txt)}
+textarea{min-height:90px;resize:vertical}
+button.action{background:var(--blue);border:none;color:#08111d;padding:10px 12px;border-radius:10px;font-weight:700;cursor:pointer}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--txt);padding:10px 12px;border-radius:10px;cursor:pointer}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.list{display:flex;flex-direction:column;gap:8px}
+.menu-btn,.result-item{background:var(--bg2);border:1px solid var(--line);color:var(--txt);padding:12px;border-radius:12px}
+.param{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--bg2);margin-bottom:10px}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line);margin-left:6px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top}
+.table th{color:var(--muted);font-size:12px}
+.ok{color:var(--green)} .warn{color:var(--yellow)} .danger{color:var(--red)} .blue{color:var(--blue)}
+pre.code{white-space:pre-wrap;background:#0c1118;border:1px solid var(--line);padding:12px;border-radius:10px;color:#cce3ff}
+.ai-box{border-left:3px solid var(--blue);padding-left:10px}
+.mono{font-family:Consolas,monospace}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi .item{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .v{font-size:24px;font-weight:700;color:var(--blue)}
+.report-frame{background:#fff;color:#111;border-radius:12px;padding:0;overflow:hidden;border:1px solid var(--line)}
+.report-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+@media (max-width:700px){
+  header h1{font-size:18px}
+  .tabs{top:60px}
+  .table{display:block;overflow:auto}
+}
+@media print{
+  body{background:#fff;color:#111}
+  header,.tabs,.report-toolbar,.no-print{display:none !important}
+  main{max-width:none;padding:0}
+  .tab{display:none !important}
+  #tab-report{display:block !important}
+  .card{border:none;box-shadow:none;background:#fff}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Peak150 PRO v8</h1>
+  <p>Relatório automático responsivo para celular, tablet e notebook</p>
+</header>
+
+<div class="tabs" id="tabs"></div>
+
+<main>
+  <section id="tab-dashboard" class="tab active"></section>
+  <section id="tab-config" class="tab"></section>
+  <section id="tab-calc" class="tab"></section>
+  <section id="tab-search" class="tab"></section>
+  <section id="tab-report" class="tab"></section>
+</main>
+
+<script>
+const APP_DATA = {"meta": {"cliente": "TROPICAL - TERNO DE SECAGEM", "equipamento": "Woodward Peak150 + CPC-HP", "rotacao_nominal_rpm": 6500, "trip_overspeed_rpm": 7150, "desliga_bba_rpm": 5200, "roda_dentada_padrao": 32, "freq_mpu_nominal_hz": 3467, "freq_mpu_trip_hz": 3813}, "menus": [{"id": "speed", "name": "Speed Configuration", "description": "Configuração de velocidade e leitura dos MPUs.", "params": [{"key": "teeth_seen_mpu", "label": "Teeth Seen by MPU", "type": "number", "value": 32, "unit": "dentes", "min": 1, "max": 200, "desc": "Número de dentes da roda lida pelo pick-up magnético.", "risk": "Valor errado distorce RPM/frequência e pode levar a leitura incorreta."}, {"key": "mpu_gear_ratio_1", "label": "MPU Gear Ratio 1", "type": "number", "value": 1, "unit": "", "min": 0, "max": 200, "desc": "Relação entre a velocidade lida pelo MPU e o eixo da turbina.", "risk": "Usar quando o MPU está em redutor ou engrenagem auxiliar."}, {"key": "mpu1_max_hz", "label": "MPU #1 Max Hz", "type": "number", "value": 5333, "unit": "Hz", "min": 0, "max": 15000, "desc": "Frequência máxima lida pelo MPU 1.", "risk": "Acima/abaixo do real afeta leitura e proteção."}, {"key": "mpu2_max_hz", "label": "MPU #2 Max Hz", "type": "number", "value": 5333, "unit": "Hz", "min": 0, "max": 15000, "desc": "Frequência máxima lida pelo MPU 2.", "risk": "Deve acompanhar a máquina real."}, {"key": "max_speed_level_hz", "label": "Max Speed Level (Hz)", "type": "number", "value": 5333, "unit": "Hz", "min": 0, "max": 15000, "desc": "Máxima velocidade/frequência aceita pelo controle.", "risk": "Configuração crítica para supervisão de velocidade."}, {"key": "minimum_speed_level_hz", "label": "Minimum Speed Level (Hz)", "type": "number", "value": 50, "unit": "Hz", "min": 0, "max": 2000, "desc": "Abaixo deste nível o controle pode considerar falha do sensor.", "risk": "Muito alto gera falso alarme; muito baixo mascara falhas."}]}, {"id": "start", "name": "Start Mode", "description": "Define se a partida será manual ou automática.", "params": [{"key": "manual_start_mode", "label": "Manual Start Mode?", "type": "boolean", "value": false, "desc": "FALSE = partida automática; TRUE = partida manual.", "risk": "No modo manual o start-up é regulado por válvula separada."}]}, {"id": "actuator", "name": "Actuator Configuration", "description": "Define tipo de saída para o atuador.", "params": [{"key": "use_20_160_ma_actuator", "label": "Use 20–160 mA Actuator?", "type": "boolean", "value": false, "desc": "Seleciona saída 20–160 mA quando TRUE.", "risk": "Tipo errado de saída pode impedir atuação correta."}, {"key": "use_4_20_ma_actuator", "label": "Use 4–20 mA Actuator?", "type": "boolean", "value": true, "desc": "Indicação de uso da saída 4–20 mA.", "risk": "No seu caso o sinal segue para o CPC-HP."}]}, {"id": "operation", "name": "Operation Mode", "description": "Ajustes de controle local/remoto e Modbus.", "params": [{"key": "manual_control_only", "label": "Manual Control Only?", "type": "boolean", "value": false, "desc": "Quando TRUE, ajustes são só por contatos aumentar/diminuir.", "risk": "Pode bloquear ajuste remoto esperado pela planta."}, {"key": "use_remote_speed_setting", "label": "Use Remote Speed Setting?", "type": "boolean", "value": true, "desc": "Habilita ajuste remoto 4–20 mA ou 1–5 Vdc.", "risk": "Se habilitado sem sinal válido, pode gerar comportamento anormal."}, {"key": "use_high_signal_select", "label": "Use High-Signal-Select?", "type": "boolean", "value": false, "desc": "Seleciona o maior sinal entre ajuste local e remoto.", "risk": "Usar só quando a filosofia de controle exigir."}, {"key": "use_modbus_analog_input", "label": "Use Modbus Analog Input?", "type": "boolean", "value": false, "desc": "Habilita ajuste remoto via link Modbus.", "risk": "Requer comunicação configurada corretamente."}]}, {"id": "readouts", "name": "Readouts", "description": "Saídas analógicas e retransmissões.", "params": [{"key": "speed_readout_4ma", "label": "Speed Readout — 4 mA Value", "type": "number", "value": 0, "unit": "RPM", "min": 0, "max": 10000, "desc": "Valor representado quando a saída está em 4 mA.", "risk": "Escala errada compromete indicação externa."}, {"key": "speed_readout_20ma", "label": "Speed Readout — 20 mA Value", "type": "number", "value": 10000, "unit": "RPM", "min": 0, "max": 15000, "desc": "Valor representado quando a saída está em 20 mA.", "risk": "Escala errada compromete indicação externa."}, {"key": "readout2_option", "label": "Readout #2 Option", "type": "select", "value": "1. Actual Speed", "options": ["1. Actual Speed", "2. Speed Setpoint", "3. Actuator Output", "4. Remote Speed Setpoint", "5. Valve Ramp Value", "6. Not Used"], "desc": "Define o que a saída analógica 2 retransmite.", "risk": "Escolha errada confunde diagnóstico em campo."}]}, {"id": "relays", "name": "Relays", "description": "Configuração dos relés configuráveis e comportamento do trip.", "params": [{"key": "configurable_relay_3_option", "label": "Configurable Relay #3 Option", "type": "select", "value": "10. Speed Switch or Hand Valve #1", "options": ["1. Alarm Condition", "2. Trip Output", "3. Shutdown Condition", "4. Remote Speed Control", "5. Speed Control", "6. Either/Any MPU Failed", "7. Overspeed Trip", "8. Overspeed Test", "9. Remote Signal OK", "10. Speed Switch or Hand Valve #1", "11. Speed Switch or Hand Valve #2"], "desc": "Função do relé configurável 3.", "risk": "No seu backup ele está ajustado para opção 10."}, {"key": "configurable_relay_4_option", "label": "Configurable Relay #4 Option", "type": "select", "value": "11. Speed Switch or Hand Valve #2", "options": ["1. Alarm Condition", "2. Trip Output", "3. Shutdown Condition", "4. Remote Speed Control", "5. Speed Control", "6. Either/Any MPU Failed", "7. Overspeed Trip", "8. Overspeed Test", "9. Remote Signal OK", "10. Speed Switch or Hand Valve #1", "11. Speed Switch or Hand Valve #2"], "desc": "Função do relé configurável 4.", "risk": "No seu backup ele está ajustado para opção 11."}, {"key": "use_speed_switch", "label": "Use Speed Switch?", "type": "boolean", "value": true, "desc": "Habilita ajuste do nível da chave de velocidade.", "risk": "Altera o comportamento dos relés de chave."}, {"key": "trip_relay_energizes_for_trip", "label": "Trip Relay Energizes For Trip?", "type": "boolean", "value": false, "desc": "Define se o relé energiza em condição de trip.", "risk": "Crítico para filosofia fail-safe."}, {"key": "reset_clear_trip", "label": "Reset Clears Trip?", "type": "boolean", "value": true, "desc": "Permite reset do trip via comando de reset.", "risk": "Não usar sem entender a filosofia de segurança."}]}], "cpc_parts": [{"name": "Entrada 4–20 mA", "desc": "Recebe o comando analógico vindo do Peak 150 para o CPC-HP.", "adjust": "Confirmar escala e loop de corrente.", "risk": "Sem sinal ou sinal abaixo de 4 mA → válvula fecha (fail-safe)."}, {"name": "Conversão eletro-hidráulica", "desc": "Converte corrente em pressão hidráulica para mover o servo da válvula.", "adjust": "Validar resposta linear e estabilidade.", "risk": "Resposta ruim pode causar hunting ou falta de potência."}, {"name": "Supply / Drain", "desc": "Linhas hidráulicas de alimentação e dreno do CPC.", "adjust": "Manter sequência correta ao intervir.", "risk": "Sequência errada pode gerar problema hidráulico e sujeira no sistema."}, {"name": "Parafuso manual interno", "desc": "Permite teste manual do atuador após remoção da tampa.", "adjust": "Horário = abre; anti-horário = fecha.", "risk": "Executar só com procedimento seguro e LOTO."}]};
+const LS_KEY = "peak150_pro_v8";
+const TABS = [
+  ["dashboard","Painel"],
+  ["config","Configurador"],
+  ["calc","Calculadora"],
+  ["search","Busca + IA"],
+  ["report","Relatório"]
+];
+
+let state = loadState();
+let currentMenu = null;
+
+function loadState(){
+  const saved = localStorage.getItem(LS_KEY);
+  if(saved){
+    try { return mergeDefaults(JSON.parse(saved)); } catch(e){}
+  }
+  return mergeDefaults({});
+}
+function mergeDefaults(saved){
+  const values = {};
+  APP_DATA.menus.forEach(m=>m.params.forEach(p=>values[p.key]=p.value));
+  return {
+    values:Object.assign(values, saved.values||{}),
+    notes:saved.notes||"",
+    techName:saved.techName||"",
+    location:saved.location||"",
+    symptom:saved.symptom||"",
+    searchHistory:saved.searchHistory||[]
+  };
+}
+function persist(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+function el(id){ return document.getElementById(id); }
+
+function renderTabs(){
+  el('tabs').innerHTML = TABS.map(([id,label],i)=>`<button id="btn-${id}" class="${i===0?'active':''}" onclick="showTab('${id}')">${label}</button>`).join('');
+}
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  el('tab-'+name).classList.add('active');
+  el('btn-'+name).classList.add('active');
+}
+function boolText(v){ return v ? "TRUE" : "FALSE"; }
+function calcHz(rpm,dentes){ return (rpm*dentes)/60; }
+function calcRpm(hz,dentes){ return (hz*60)/dentes; }
+
+function renderDashboard(){
+  const d = APP_DATA.meta;
+  const calcNom = calcHz(d.rotacao_nominal_rpm, Number(state.values.teeth_seen_mpu));
+  const diffs = compareWithBase(state.values);
+  el('tab-dashboard').innerHTML = `
+    <div class="grid two">
+      <div class="card">
+        <h3>Base da máquina</h3>
+        <div class="kpi">
+          <div class="item"><div class="small">Rotação nominal</div><div class="v">${d.rotacao_nominal_rpm}</div><div class="small">RPM</div></div>
+          <div class="item"><div class="small">Trip overspeed</div><div class="v">${d.trip_overspeed_rpm}</div><div class="small">RPM</div></div>
+          <div class="item"><div class="small">Roda dentada base</div><div class="v">${d.roda_dentada_padrao}</div><div class="small">dentes</div></div>
+          <div class="item"><div class="small">Divergências</div><div class="v">${diffs.length}</div><div class="small">parâmetros</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Checagem rápida</h3>
+        <div class="${Math.abs(calcNom-d.freq_mpu_nominal_hz)<5?'ok':'danger'}">
+          ${Math.abs(calcNom-d.freq_mpu_nominal_hz)<5?'✔':'✖'} Frequência nominal calculada: ${calcNom.toFixed(1)} Hz
+        </div>
+        <div class="small" style="margin-top:8px">Base esperada: <span class="mono">${d.freq_mpu_nominal_hz} Hz</span></div>
+        <div class="small">Teeth Seen by MPU: <span class="mono">${state.values.teeth_seen_mpu}</span></div>
+        <div class="small">Remote Speed Setting: <span class="mono">${boolText(state.values.use_remote_speed_setting)}</span></div>
+        <div class="small">Saída 4–20 mA: <span class="mono">${boolText(state.values.use_4_20_ma_actuator)}</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Informações do atendimento</h3>
+      <div class="grid two">
+        <div>
+          <label>Técnico</label>
+          <input id="techName" value="${escapeHtml(state.techName)}" onchange="updateMeta('techName', this.value)">
+        </div>
+        <div>
+          <label>Local / equipamento</label>
+          <input id="location" value="${escapeHtml(state.location)}" onchange="updateMeta('location', this.value)">
+        </div>
+      </div>
+      <label>Observações</label>
+      <textarea id="notes" onchange="updateMeta('notes', this.value)">${escapeHtml(state.notes)}</textarea>
+    </div>`;
+}
+
+function updateMeta(key, value){
+  state[key] = value;
+  persist();
+  renderReport();
+}
+
+function renderConfig(){
+  const side = `
+    <div class="card">
+      <h3>Menus</h3>
+      <div class="list">
+        ${APP_DATA.menus.map(m=>`<button class="menu-btn" onclick="openMenu('${m.id}')">${m.name}</button>`).join('')}
+      </div>
+    </div>`;
+  const content = currentMenu ? renderMenu(APP_DATA.menus.find(m=>m.id===currentMenu)) : `
+    <div class="card">
+      <h3>Configurador Peak150</h3>
+      <pre class="code">MAIN HEADER
+ ├─ Speed Configuration
+ ├─ Start Mode
+ ├─ Actuator Configuration
+ ├─ Operation Mode
+ ├─ Readouts
+ └─ Relays</pre>
+      <div class="small">Baseado no manual e nos parâmetros do backup.</div>
+    </div>`;
+  el('tab-config').innerHTML = `<div class="grid two">${side}<div>${content}</div></div>`;
+}
+function openMenu(id){ currentMenu=id; renderConfig(); }
+function renderMenu(menu){
+  return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h3 style="margin:0">${menu.name}</h3>
+        <button class="ghost" onclick="currentMenu=null; renderConfig()">Voltar</button>
+      </div>
+      <div class="small" style="margin-top:6px">${menu.description}</div>
+    </div>
+    ${menu.params.map(renderParam).join('')}
+  `;
+}
+function renderParam(p){
+  const value = state.values[p.key];
+  let input = '';
+  if(p.type==='boolean'){
+    input = `<select onchange="updateValue('${p.key}', this.value==='true')">
+      <option value="true" ${value===true?'selected':''}>TRUE</option>
+      <option value="false" ${value===false?'selected':''}>FALSE</option>
+    </select>`;
+  } else if(p.type==='select'){
+    input = `<select onchange="updateValue('${p.key}', this.value)">
+      ${p.options.map(opt=>`<option value="${escapeAttr(opt)}" ${String(value)===String(opt)?'selected':''}>${opt}</option>`).join('')}
+    </select>`;
+  } else {
+    input = `<input type="number" value="${value}" min="${p.min||''}" max="${p.max||''}" step="any" onchange="updateValue('${p.key}', Number(this.value))">`;
+  }
+  return `<div class="param">
+    <strong>${p.label}</strong> <span class="badge">${p.unit||p.type}</span>
+    <div class="small" style="margin:6px 0">${p.desc||''}</div>
+    ${input}
+    <div class="small" style="margin-top:8px"><span class="warn">Risco:</span> ${p.risk||'—'}</div>
+  </div>`;
+}
+function updateValue(key,val){
+  state.values[key]=val; persist();
+  renderDashboard(); renderReport();
+}
+
+function renderCalc(){
+  el('tab-calc').innerHTML = `
+    <div class="grid two">
+      <div class="card">
+        <h3>RPM → Hz</h3>
+        <label>RPM</label><input id="rpm_in" type="number" value="3600">
+        <label>Dentes</label><input id="teeth_in" type="number" value="${state.values.teeth_seen_mpu}">
+        <div class="row" style="margin-top:10px"><button class="action" onclick="runHz()">Calcular</button></div>
+        <div id="hz_out" class="small" style="margin-top:10px"></div>
+      </div>
+      <div class="card">
+        <h3>Hz → RPM</h3>
+        <label>Hz</label><input id="hz_in" type="number" value="1920">
+        <label>Dentes</label><input id="teeth_in2" type="number" value="${state.values.teeth_seen_mpu}">
+        <div class="row" style="margin-top:10px"><button class="action" onclick="runRpm()">Calcular</button></div>
+        <div id="rpm_out" class="small" style="margin-top:10px"></div>
+      </div>
+    </div>`;
+}
+function runHz(){
+  const rpm = Number(el('rpm_in').value), teeth = Number(el('teeth_in').value), hz = calcHz(rpm, teeth);
+  let txt = `<span class="blue">Resultado:</span> <span class="mono">${hz.toFixed(2)} Hz</span>`;
+  if(teeth !== APP_DATA.meta.roda_dentada_padrao) txt += `<br><span class="warn">Atenção: base atual do app é ${APP_DATA.meta.roda_dentada_padrao} dentes.</span>`;
+  el('hz_out').innerHTML = txt;
+}
+function runRpm(){
+  const hz = Number(el('hz_in').value), teeth = Number(el('teeth_in2').value), rpm = calcRpm(hz, teeth);
+  let txt = `<span class="blue">Resultado:</span> <span class="mono">${rpm.toFixed(2)} RPM</span>`;
+  if(Math.abs(rpm-3600)<2 && teeth===32) txt += `<br>Exemplo clássico: 1920 Hz com 32 dentes ≈ 3600 RPM.`;
+  el('rpm_out').innerHTML = txt;
+}
+
+function localSearch(q){
+  const hits = [];
+  APP_DATA.menus.forEach(menu=>{
+    if(menu.name.toLowerCase().includes(q) || menu.description.toLowerCase().includes(q)){
+      hits.push({type:'menu', title:menu.name, body:menu.description});
+    }
+    menu.params.forEach(p=>{
+      const txt = `${p.label} ${p.desc||''} ${p.risk||''}`.toLowerCase();
+      if(txt.includes(q)) hits.push({type:'parâmetro', title:p.label, body:(p.desc||'') + (p.risk ? ' | Risco: '+p.risk : '')});
+    });
+  });
+  APP_DATA.cpc_parts.forEach(p=>{
+    const txt = `${p.name} ${p.desc} ${p.adjust} ${p.risk}`.toLowerCase();
+    if(txt.includes(q)) hits.push({type:'CPC', title:p.name, body:p.desc + ' | Ajuste: ' + p.adjust});
+  });
+  return hits;
+}
+
+function aiFallback(q){
+  const remote = state.values.use_remote_speed_setting === true;
+  const actuator420 = state.values.use_4_20_ma_actuator === true;
+  const teeth = state.values.teeth_seen_mpu;
+
+  if(q.includes('oscil')){
+    return {
+      title:'IA de apoio: oscilação',
+      body:`Possíveis causas:
+- ganho alto / instabilidade de controle
+- CPC com resposta hidráulica irregular
+${remote ? '- sinal remoto habilitado: revisar estabilidade do comando remoto' : '- foco maior no ajuste local/CPC'}
+
+Ações sugeridas:
+- medir estabilidade do sinal
+- observar hunting no CPC
+- revisar parâmetros de velocidade`
+    };
+  }
+  if(q.includes('trip') || q.includes('desarme')){
+    return {
+      title:'IA de apoio: trip / desarme',
+      body:`Possíveis causas:
+- overspeed
+- falha de MPU
+- trip externo
+
+Contexto atual:
+- Teeth Seen by MPU = ${teeth}
+- Remote Speed = ${remote ? 'TRUE' : 'FALSE'}
+
+Ações sugeridas:
+- medir frequência do MPU
+- validar dentes configurados
+- revisar causa externa`
+    };
+  }
+  if(q.includes('nao responde') || q.includes('não responde') || q.includes('sem resposta')){
+    return {
+      title:'IA de apoio: não responde',
+      body:`Possíveis causas:
+${actuator420 ? '- verificar loop 4–20 mA até o CPC' : '- revisar tipo de saída do atuador'}
+- atuador/CPC travado
+- comando chegando sem resposta hidráulica`
+    };
+  }
+  return {
+    title:'IA de apoio',
+    body:`Banco interno sem resposta direta. Reescreva com:
+- nome do parâmetro
+- sintoma
+- parte do CPC
+- overspeed / trip / oscilação`
+  };
+}
+
+function renderSearch(){
+  el('tab-search').innerHTML = `
+    <div class="grid two">
+      <div class="card">
+        <h3>Busca no banco interno</h3>
+        <label>Pergunta, sintoma ou termo</label>
+        <input id="searchBox" placeholder="Ex.: MPU, overspeed, oscilando, não responde, relay, CPC" value="${escapeHtml(state.symptom)}">
+        <div class="row" style="margin-top:10px">
+          <button class="action" onclick="runSearchAndAI()">Buscar</button>
+        </div>
+        <div class="small" style="margin-top:10px">Regra do app: primeiro busca local baseada no manual. A IA só entra quando o banco interno não encontrar nada relevante.</div>
+      </div>
+      <div class="card">
+        <h3>Resultado</h3>
+        <div id="searchResults" class="small">Sem busca ainda.</div>
+      </div>
+    </div>`;
+  if(state.symptom){ runSearchAndAI(true); }
+}
+
+function runSearchAndAI(silent=false){
+  const q = el('searchBox').value.trim().toLowerCase();
+  state.symptom = q; persist();
+  if(!q){ el('searchResults').innerHTML = 'Digite algo para buscar.'; return; }
+
+  const hits = localSearch(q);
+  let historyItem = null;
+
+  if(hits.length){
+    const html = `
+      <div class="ok"><strong>Busca local encontrou ${hits.length} resultado(s).</strong></div>
+      <div class="small" style="margin:8px 0 12px">A IA foi bloqueada porque o banco interno já respondeu.</div>
+      ${hits.slice(0,20).map(h=>`<div class="result-item"><strong>${h.title}</strong> <span class="badge">${h.type}</span><div class="small" style="margin-top:6px">${h.body}</div></div>`).join('<div style="height:8px"></div>')}
+    `;
+    el('searchResults').innerHTML = html;
+    historyItem = {query:q, source:'Banco interno', summary:`${hits.length} resultado(s) local(is)`};
+  } else {
+    const ai = aiFallback(q);
+    const html = `
+      <div class="warn"><strong>Nenhum resultado encontrado no banco interno.</strong></div>
+      <div class="small" style="margin:8px 0 12px">IA liberada como segunda camada.</div>
+      <div class="result-item ai-box">
+        <strong>${ai.title}</strong>
+        <pre class="code" style="margin-top:10px">${ai.body}</pre>
+      </div>
+    `;
+    el('searchResults').innerHTML = html;
+    historyItem = {query:q, source:'IA fallback', summary:ai.title};
+  }
+  state.searchHistory.unshift({...historyItem, at:new Date().toISOString()});
+  state.searchHistory = state.searchHistory.slice(0,10);
+  persist();
+  if(!silent) renderReport();
+}
+
+function compareWithBase(values){
+  const diffs = [];
+  APP_DATA.menus.forEach(m=>m.params.forEach(p=>{ if(String(values[p.key])!==String(p.value)) diffs.push({label:p.label, base:p.value, current:values[p.key]}); }));
+  return diffs;
+}
+
+function getReportStatus(){
+  const diffs = compareWithBase(state.values);
+  const teeth = Number(state.values.teeth_seen_mpu);
+  const calcNom = calcHz(APP_DATA.meta.rotacao_nominal_rpm, teeth);
+  const freqOk = Math.abs(calcNom - APP_DATA.meta.freq_mpu_nominal_hz) < 5;
+
+  if(!freqOk) return {label:'REPROVADO / REVISAR AJUSTE', cls:'danger'};
+  if(diffs.length > 5) return {label:'ATENÇÃO', cls:'warn'};
+  return {label:'APROVADO COM RESSALVAS', cls:'ok'};
+}
+
+function buildReportHTML(){
+  const d = APP_DATA.meta;
+  const diffs = compareWithBase(state.values);
+  const status = getReportStatus();
+  const now = new Date();
+  const lastDiag = state.searchHistory[0];
+  const calcNom = calcHz(d.rotacao_nominal_rpm, Number(state.values.teeth_seen_mpu));
+  const calcTrip = calcHz(d.trip_overspeed_rpm, Number(state.values.teeth_seen_mpu));
+
+  const diffRows = diffs.length
+    ? diffs.map(x=>`<tr><td>${x.label}</td><td>${x.base}</td><td>${x.current}</td></tr>`).join('')
+    : `<tr><td colspan="3">Sem divergências com a base do app.</td></tr>`;
+
+  const diagBlock = lastDiag
+    ? `<p><strong>Última consulta:</strong> ${escapeHtml(lastDiag.query)}</p>
+       <p><strong>Fonte:</strong> ${escapeHtml(lastDiag.source)}</p>
+       <p><strong>Resumo:</strong> ${escapeHtml(lastDiag.summary)}</p>`
+    : `<p>Sem consulta registrada.</p>`;
+
+  return `
+  <div style="font-family:Arial,sans-serif;padding:24px;max-width:980px;margin:auto;color:#111;background:#fff">
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:2px solid #ddd;padding-bottom:12px;margin-bottom:18px">
+      <div>
+        <h1 style="margin:0 0 4px;font-size:24px">Relatório Automático Peak150</h1>
+        <div style="color:#555">Comissionamento / Verificação / Diagnóstico</div>
+      </div>
+      <div style="text-align:right">
+        <div><strong>Data:</strong> ${now.toLocaleString()}</div>
+        <div><strong>Status:</strong> <span style="color:${status.cls==='ok'?'#15803d':status.cls==='warn'?'#b45309':'#b91c1c'}">${status.label}</span></div>
+      </div>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Cliente</strong></td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(d.cliente)}</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Equipamento</strong></td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(d.equipamento)}</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Técnico</strong></td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(state.techName || '—')}</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Local</strong></td><td style="padding:8px;border:1px solid #ddd">${escapeHtml(state.location || '—')}</td></tr>
+    </table>
+
+    <h2 style="font-size:18px">1. Resumo técnico</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Rotação nominal</strong></td><td style="padding:8px;border:1px solid #ddd">${d.rotacao_nominal_rpm} RPM</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Trip overspeed</strong></td><td style="padding:8px;border:1px solid #ddd">${d.trip_overspeed_rpm} RPM</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Teeth Seen by MPU</strong></td><td style="padding:8px;border:1px solid #ddd">${state.values.teeth_seen_mpu}</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Freq. nominal calculada</strong></td><td style="padding:8px;border:1px solid #ddd">${calcNom.toFixed(2)} Hz</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Freq. trip calculada</strong></td><td style="padding:8px;border:1px solid #ddd">${calcTrip.toFixed(2)} Hz</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Remote Speed Setting</strong></td><td style="padding:8px;border:1px solid #ddd">${boolText(state.values.use_remote_speed_setting)}</td></tr>
+      <tr><td style="padding:8px;border:1px solid #ddd"><strong>Atuador 4–20 mA</strong></td><td style="padding:8px;border:1px solid #ddd">${boolText(state.values.use_4_20_ma_actuator)}</td></tr>
+    </table>
+
+    <h2 style="font-size:18px">2. Divergências da base</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:18px">
+      <tr><th style="padding:8px;border:1px solid #ddd;text-align:left">Parâmetro</th><th style="padding:8px;border:1px solid #ddd;text-align:left">Base</th><th style="padding:8px;border:1px solid #ddd;text-align:left">Atual</th></tr>
+      ${diffRows}
+    </table>
+
+    <h2 style="font-size:18px">3. Consulta técnica registrada</h2>
+    <div style="border:1px solid #ddd;padding:12px;margin-bottom:18px">
+      ${diagBlock}
+    </div>
+
+    <h2 style="font-size:18px">4. Observações do técnico</h2>
+    <div style="border:1px solid #ddd;padding:12px;min-height:90px;margin-bottom:18px;white-space:pre-wrap">${escapeHtml(state.notes || 'Sem observações registradas.')}</div>
+
+    <h2 style="font-size:18px">5. Conclusão automática</h2>
+    <div style="border:1px solid #ddd;padding:12px">
+      <p><strong>Status final:</strong> <span style="color:${status.cls==='ok'?'#15803d':status.cls==='warn'?'#b45309':'#b91c1c'}">${status.label}</span></p>
+      <p>${buildConclusionText(diffs.length, calcNom)}</p>
+    </div>
+  </div>`;
+}
+
+function buildConclusionText(diffCount, calcNom){
+  const expected = APP_DATA.meta.freq_mpu_nominal_hz;
+  const delta = Math.abs(calcNom - expected);
+  if(delta >= 5){
+    return 'A frequência nominal calculada diverge da base do app. Recomenda-se revisar imediatamente a configuração de dentes, escala de velocidade e parâmetros de MPU antes de liberar a máquina.';
+  }
+  if(diffCount > 5){
+    return 'A frequência nominal está coerente, porém há várias divergências de parâmetros em relação à base. Recomenda-se revisão criteriosa e nova validação antes de considerar encerrado.';
+  }
+  return 'Os parâmetros principais estão coerentes com a base do app e a frequência nominal calculada está compatível. Liberar somente após validação final em campo e confirmação dos intertravamentos.';
+}
+
+function renderReport(){
+  const reportHtml = buildReportHTML();
+  el('tab-report').innerHTML = `
+    <div class="card no-print">
+      <h3>Relatório automático</h3>
+      <div class="report-toolbar">
+        <button class="action" onclick="openReportWindow()">Abrir relatório</button>
+        <button class="ghost" onclick="downloadReportHTML()">Baixar HTML</button>
+        <button class="ghost" onclick="window.print()">Imprimir / PDF</button>
+      </div>
+      <div class="small">Funciona em celular, tablet e notebook. Em celular, use “Abrir relatório” para leitura limpa; em notebook, use “Imprimir / PDF”.</div>
+    </div>
+    <div class="report-frame">${reportHtml}</div>`;
+}
+
+function openReportWindow(){
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Peak150</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;background:#f5f5f5">${buildReportHTML()}</body></html>`);
+  w.document.close();
+}
+
+function downloadReportHTML(){
+  const full = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório Peak150</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;background:#f5f5f5">${buildReportHTML()}</body></html>`;
+  const blob = new Blob([full], {type:'text/html'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relatorio_peak150.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+function renderAll(){
+  renderTabs();
+  renderDashboard();
+  renderConfig();
+  renderCalc();
+  renderSearch();
+  renderReport();
+}
+</script>
+<script>
+function renderSearch(){
+  el('tab-search').innerHTML = `
+    <div class="grid two">
+      <div class="card">
+        <h3>Busca no banco interno</h3>
+        <label>Pergunta, sintoma ou termo</label>
+        <input id="searchBox" placeholder="Ex.: MPU, overspeed, oscilando, não responde, relay, CPC" value="${escapeHtml(state.symptom||'')}">
+        <div class="row" style="margin-top:10px">
+          <button class="action" onclick="runSearchAndAI()">Buscar</button>
+        </div>
+        <div class="small" style="margin-top:10px">Regra do app: primeiro busca local baseada no manual. A IA só entra quando o banco interno não encontrar nada relevante.</div>
+      </div>
+      <div class="card">
+        <h3>Resultado</h3>
+        <div id="searchResults" class="small">Sem busca ainda.</div>
+      </div>
+    </div>`;
+  if(state.symptom){ runSearchAndAI(true); }
+}
+
+function runSearchAndAI(silent=false){
+  const q = el('searchBox').value.trim().toLowerCase();
+  state.symptom = q; persist();
+  if(!q){ el('searchResults').innerHTML = 'Digite algo para buscar.'; return; }
+
+  const hits = localSearch(q);
+  let historyItem = null;
+
+  if(hits.length){
+    const html = `
+      <div class="ok"><strong>Busca local encontrou ${hits.length} resultado(s).</strong></div>
+      <div class="small" style="margin:8px 0 12px">A IA foi bloqueada porque o banco interno já respondeu.</div>
+      ${hits.slice(0,20).map(h=>`<div class="result-item"><strong>${h.title}</strong> <span class="badge">${h.type}</span><div class="small" style="margin-top:6px">${h.body}</div></div>`).join('<div style="height:8px"></div>')}
+    `;
+    el('searchResults').innerHTML = html;
+    historyItem = {query:q, source:'Banco interno', summary:`${hits.length} resultado(s) local(is)`};
+  } else {
+    const ai = aiFallback(q);
+    const html = `
+      <div class="warn"><strong>Nenhum resultado encontrado no banco interno.</strong></div>
+      <div class="small" style="margin:8px 0 12px">IA liberada como segunda camada.</div>
+      <div class="result-item ai-box">
+        <strong>${ai.title}</strong>
+        <pre class="code" style="margin-top:10px">${ai.body}</pre>
+      </div>
+    `;
+    el('searchResults').innerHTML = html;
+    historyItem = {query:q, source:'IA fallback', summary:ai.title};
+  }
+  state.searchHistory.unshift({...historyItem, at:new Date().toISOString()});
+  state.searchHistory = state.searchHistory.slice(0,10);
+  persist();
+  if(!silent) renderReport();
+}
+
+renderAll();
+</script>
+</body>
+</html>
