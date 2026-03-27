@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PEAK 150 // HANDHELD FIELD TOOL</title>
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║  PEAK 150 — HANDHELD FIELD TOOL                             ║
+  ║  Normas aplicadas:                                           ║
+  ║  • IEC 60073  — Codificação de cores para indicadores        ║
+  ║  • IEC 61310-1 — Sinais visuais em máquinas                  ║
+  ║  • High-Performance HMI (ISA-101) — Paleta cinza + cor       ║
+  ║    apenas para alarmes, status e dados ao vivo               ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   IEC / HMI COLOR SYSTEM
+   Ref: IEC 60073 + ISA-101 High-Performance HMI
+   ─────────────────────────────────────────────────────────────
+   BACKGROUND   → cinza escuro neutro (sem preto puro)
+   SURFACE      → cinza médio para cards e painéis
+   BORDER       → cinza claro para separação
+   TEXT-PRIMARY → branco quase puro (alto contraste)
+   TEXT-SEC     → cinza claro para rótulos secundários
+   TEXT-DIM     → cinza médio para hints/placeholders
+
+   IEC 60073 — Significado das cores:
+   RED    #E53935 → Perigo / Falha / Trip / Emergência
+   YELLOW #FDD835 → Advertência / Atenção / Anormal
+   GREEN  #43A047 → Normal / OK / Operando / Seguro
+   BLUE   #1E88E5 → Informação / Obrigatório / Neutro
+   WHITE  #ECEFF1 → Neutro / Sem condição especial
+   CYAN   #00ACC1 → Dados ao vivo / Monitoramento
+═══════════════════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds — cinza escuro (não preto puro) */
+  --bg-base:    #161B22;   /* fundo principal */
+  --bg-surface: #1F2937;   /* cards, painéis */
+  --bg-raised:  #273344;   /* campos, inputs */
+  --bg-overlay: #0D1117;   /* header, nav */
+
+  /* Borders */
+  --border-dim:    rgba(255,255,255,0.08);
+  --border-normal: rgba(255,255,255,0.14);
+  --border-focus:  rgba(30,136,229,0.7);
+
+  /* Text — alto contraste IEC */
+  --text-primary:   #E8EDF2;   /* texto principal — contraste > 7:1 */
+  --text-secondary: #9EAAB8;   /* rótulos, labels */
+  --text-dim:       #5C6B7A;   /* placeholder, hint */
+  --text-inverse:   #0D1117;   /* texto sobre fundo claro */
+
+  /* IEC 60073 — Cores funcionais */
+  --iec-red:     #E53935;   /* Falha / Perigo */
+  --iec-red-bg:  rgba(229,57,53,0.12);
+  --iec-red-bdr: rgba(229,57,53,0.40);
+
+  --iec-yellow:     #FDD835;  /* Advertência */
+  --iec-yellow-bg:  rgba(253,216,53,0.10);
+  --iec-yellow-bdr: rgba(253,216,53,0.35);
+
+  --iec-green:     #43A047;   /* Normal / OK */
+  --iec-green-bg:  rgba(67,160,71,0.12);
+  --iec-green-bdr: rgba(67,160,71,0.40);
+
+  --iec-blue:     #1E88E5;    /* Informação */
+  --iec-blue-bg:  rgba(30,136,229,0.12);
+  --iec-blue-bdr: rgba(30,136,229,0.35);
+
+  --iec-cyan:     #00ACC1;    /* Dados ao vivo */
+  --iec-cyan-bg:  rgba(0,172,193,0.10);
+  --iec-cyan-bdr: rgba(0,172,193,0.35);
+
+  --iec-white:    #ECEFF1;    /* Neutro */
+  --iec-gray:     #78909C;    /* Desativado */
+
+  /* Typography */
+  --font-ui:   'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --font-data: 'Roboto Mono', 'Consolas', monospace;
+
+  /* Sizing */
+  --r:  5px;
+  --r2: 8px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════════════ */
+html { height: 100%; overflow-x: hidden; }
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scanlines sutis — apenas textura, não obstrução */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0,0,0,0.04) 3px,
+    rgba(0,0,0,0.04) 4px
+  );
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: #3A4A5C; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--iec-blue); }
+
+/* ═══════════════════════════════════════════════════════════════
+   TYPOGRAPHY SCALE — IEC legibility
+   Mínimo 13px para leitura em campo (handheld/tablet)
+═══════════════════════════════════════════════════════════════ */
+.t-xs   { font-size: 11px; }
+.t-sm   { font-size: 13px; }
+.t-base { font-size: 15px; }
+.t-md   { font-size: 17px; }
+.t-lg   { font-size: 20px; }
+.t-xl   { font-size: 24px; }
+.t-2xl  { font-size: 30px; }
+.t-3xl  { font-size: 38px; }
+
+.mono { font-family: var(--font-mono); }
+.data { font-family: var(--font-data); }
+.bold { font-weight: 700; }
+.upper { text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Glitch — apenas no logo, sutil */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0;
+  color: var(--iec-cyan);
+  clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+  transform: translateX(-1px);
+  opacity: 0.5;
+  animation: glitch1 4s infinite;
+}
+.glitch::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0;
+  color: #FF4081;
+  clip-path: polygon(0 65%, 100% 65%, 100% 80%, 0 80%);
+  transform: translateX(1px);
+  opacity: 0.4;
+  animation: glitch2 4s infinite;
+}
+@keyframes glitch1 {
+  0%,88%,100% { transform: translateX(-1px); opacity: 0.4; }
+  90% { transform: translateX(2px) skewX(3deg); opacity: 0.7; }
+  92% { transform: translateX(-2px); opacity: 0.3; }
+}
+@keyframes glitch2 {
+  0%,88%,100% { transform: translateX(1px); opacity: 0.3; }
+  89% { transform: translateX(-2px) skewX(-3deg); opacity: 0.6; }
+  91% { transform: translateX(2px); opacity: 0.2; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════════════ */
+#app-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg-overlay);
+  border-bottom: 2px solid var(--iec-blue);
+  backdrop-filter: blur(8px);
+  padding: 0 16px;
+  box-shadow: var(--shadow-md);
+}
+
+.header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 58px;
+  gap: 12px;
+}
+
+.logo-block { display: flex; flex-direction: column; line-height: 1.1; }
+
+.logo-title {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--iec-cyan);
+}
+
+.logo-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+/* IEC 60073 — Status indicator */
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--iec-green-bg);
+  border: 1px solid var(--iec-green-bdr);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--iec-green);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--iec-green);
+  flex-shrink: 0;
+  animation: pulse-dot 2.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(67,160,71,0.4); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(67,160,71,0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAV TABS — IEC: rótulos claros, ícones + texto
+═══════════════════════════════════════════════════════════════ */
+#nav-tabs {
+  background: var(--bg-overlay);
+  border-bottom: 1px solid var(--border-dim);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#nav-tabs::-webkit-scrollbar { display: none; }
+
+.tabs-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+}
+
+.tab-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  padding: 12px 18px 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+.tab-btn.active {
+  color: var(--iec-cyan);
+  border-bottom-color: var(--iec-cyan);
+  font-weight: 600;
+}
+.tab-icon { font-size: 15px; }
+
+.tab-badge {
+  background: var(--iec-blue);
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════════════ */
+#main-content {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 16px 72px;
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION HEADER
+═══════════════════════════════════════════════════════════════ */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-normal);
+}
+
+.section-icon {
+  width: 40px; height: 40px;
+  background: var(--iec-blue-bg);
+  border: 1px solid var(--iec-blue-bdr);
+  border-radius: var(--r2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.section-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARDS — superfície neutra, cor só para status
+═══════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r2);
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: rgba(255,255,255,0.2); }
+
+/* Card label — rótulo de seção */
+.card-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--iec-cyan);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.card-label::before { content: '▌'; color: var(--iec-blue); font-size: 14px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM ELEMENTS — IEC: campos grandes, legíveis em campo
+═══════════════════════════════════════════════════════════════ */
+.form-group { margin-bottom: 14px; }
+
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* Asterisco obrigatório */
+.form-label .req { color: var(--iec-red); margin-left: 3px; }
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--iec-blue);
+  box-shadow: 0 0 0 3px rgba(30,136,229,0.18);
+}
+.form-input::placeholder, .form-textarea::placeholder { color: var(--text-dim); font-size: 14px; }
+.form-textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.form-select option { background: var(--bg-raised); color: var(--text-primary); }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS — IEC: tamanho mínimo 44px para uso em campo
+═══════════════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 10px 18px;
+  min-height: 42px;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+
+/* IEC 60073 — Azul = ação principal / informação */
+.btn-primary {
+  background: var(--iec-blue);
+  border-color: var(--iec-blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(30,136,229,0.3);
+}
+.btn-primary:hover { background: #1976D2; box-shadow: 0 4px 14px rgba(30,136,229,0.45); }
+
+/* IEC 60073 — Vermelho = perigo / exclusão */
+.btn-danger {
+  background: var(--iec-red-bg);
+  border-color: var(--iec-red-bdr);
+  color: #EF9A9A;
+}
+.btn-danger:hover { background: rgba(229,57,53,0.22); border-color: var(--iec-red); color: #fff; }
+
+/* IEC 60073 — Verde = confirmar / salvar / OK */
+.btn-success {
+  background: var(--iec-green);
+  border-color: var(--iec-green);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(67,160,71,0.3);
+}
+.btn-success:hover { background: #388E3C; box-shadow: 0 4px 14px rgba(67,160,71,0.45); }
+
+/* IEC 60073 — Cinza = neutro / secundário */
+.btn-neutral {
+  background: var(--bg-raised);
+  border-color: var(--border-normal);
+  color: var(--text-secondary);
+}
+.btn-neutral:hover { border-color: rgba(255,255,255,0.3); color: var(--text-primary); }
+
+/* IEC 60073 — Amarelo = advertência */
+.btn-warning {
+  background: var(--iec-yellow-bg);
+  border-color: var(--iec-yellow-bdr);
+  color: var(--iec-yellow);
+}
+.btn-warning:hover { background: rgba(253,216,53,0.2); }
+
+.btn-sm { padding: 7px 13px; font-size: 13px; min-height: 36px; }
+.btn-lg { padding: 13px 24px; font-size: 16px; min-height: 50px; }
+.btn-block { width: 100%; }
+
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP BAR — indicador de progresso
+═══════════════════════════════════════════════════════════════ */
+.step-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+.step-bar::-webkit-scrollbar { display: none; }
+
+.step-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 56px;
+}
+
+.step-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border-normal);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  transition: all 0.25s;
+  position: relative;
+  z-index: 1;
+  background: var(--bg-surface);
+}
+
+.step-circle.done {
+  border-color: var(--iec-green);
+  background: var(--iec-green);
+  color: #fff;
+}
+
+.step-circle.active {
+  border-color: var(--iec-blue);
+  background: var(--iec-blue);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(30,136,229,0.2);
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-normal);
+  margin: 15px 4px 0;
+  transition: background 0.3s;
+  align-self: flex-start;
+}
+.step-line.done { background: var(--iec-green); }
+
+.step-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 5px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.step-wrapper.active .step-label { color: var(--iec-blue); font-weight: 700; }
+.step-wrapper.done .step-label   { color: var(--iec-green); }
+
+/* ═══════════════════════════════════════════════════════════════
+   STEP PANELS
+═══════════════════════════════════════════════════════════════ */
+.step-panel { display: none; }
+.step-panel.active { display: block; animation: fadeIn 0.25s ease; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHOTO UPLOAD ZONE
+═══════════════════════════════════════════════════════════════ */
+.photo-zone {
+  border: 2px dashed var(--border-normal);
+  border-radius: var(--r2);
+  padding: 28px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-raised);
+}
+.photo-zone:hover, .photo-zone.drag-over {
+  border-color: var(--iec-blue);
+  background: var(--iec-blue-bg);
+}
+.photo-zone-icon { font-size: 2.2rem; margin-bottom: 10px; }
+.photo-zone-text { font-size: 14px; color: var(--text-secondary); }
+.photo-zone-text span { color: var(--iec-blue); font-weight: 600; }
+.photo-zone-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.photo-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--r);
+  overflow: hidden;
+  border: 2px solid var(--border-normal);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.photo-thumb:hover { transform: scale(1.04); border-color: var(--iec-blue); }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.photo-thumb-del {
+  position: absolute; top: 4px; right: 4px;
+  background: var(--iec-red);
+  border: none; border-radius: 50%;
+  width: 20px; height: 20px;
+  color: #fff; font-size: 11px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.15s;
+  font-weight: 700;
+}
+.photo-thumb:hover .photo-thumb-del { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════
+   FAULT CODE CHIPS — IEC 60073: VERMELHO = Falha
+═══════════════════════════════════════════════════════════════ */
+.fault-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+
+.fault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--iec-red-bg);
+  border: 1px solid var(--iec-red-bdr);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #EF9A9A;
+  animation: chipIn 0.18s ease;
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.fault-chip-del {
+  background: none; border: none;
+  color: #EF9A9A; cursor: pointer;
+  font-size: 13px; padding: 0; line-height: 1;
+  opacity: 0.6; transition: opacity 0.15s;
+}
+.fault-chip-del:hover { opacity: 1; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PARAM TABLE — dados ao vivo em azul/ciano (IEC HMI)
+═══════════════════════════════════════════════════════════════ */
+.param-table-wrap { overflow-x: auto; border-radius: var(--r); }
+
+.param-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.param-table th {
+  background: var(--bg-overlay);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--iec-blue);
+  white-space: nowrap;
+}
+
+.param-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.param-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+/* Campo de valor — destaque em ciano (dados ao vivo) */
+.param-table input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--iec-cyan);
+  font-family: var(--font-data);
+  font-size: 15px;
+  font-weight: 600;
+  width: 100%;
+  outline: none;
+  padding: 2px 4px;
+  transition: border-color 0.15s;
+  min-width: 80px;
+}
+.param-table input:focus {
+  border-bottom-color: var(--iec-blue);
+  background: rgba(30,136,229,0.06);
+  border-radius: 3px 3px 0 0;
+}
+.param-table input::placeholder { color: var(--text-dim); font-weight: 400; font-size: 13px; }
+
+.param-num  { color: var(--text-dim); font-family: var(--font-mono); font-size: 12px; }
+.param-name { color: var(--text-primary); font-size: 14px; }
+.param-unit { color: var(--text-secondary); font-size: 12px; font-family: var(--font-mono); }
+
+/* ═══════════════════════════════════════════════════════════════
+   STATS ROW — valores em destaque
+═══════════════════════════════════════════════════════════════ */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r2);
+  padding: 14px 12px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--iec-blue-bdr); }
+
+.stat-val {
+  font-family: var(--font-data);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--iec-cyan);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH BAR
+═══════════════════════════════════════════════════════════════ */
+.search-wrap { position: relative; margin-bottom: 14px; }
+
+.search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r);
+  color: var(--text-primary);
+  font-size: 15px;
+  padding: 11px 14px 11px 38px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-input:focus { border-color: var(--iec-blue); box-shadow: 0 0 0 3px rgba(30,136,229,0.15); }
+.search-input::placeholder { color: var(--text-dim); }
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKUP CARDS
+═══════════════════════════════════════════════════════════════ */
+.backup-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r2);
+  margin-bottom: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.backup-card:hover { border-color: rgba(255,255,255,0.2); box-shadow: var(--shadow-sm); }
+.backup-card.expanded { border-color: var(--iec-blue-bdr); }
+
+.backup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+.backup-header:hover { background: rgba(255,255,255,0.03); }
+
+.backup-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--iec-blue), var(--iec-cyan));
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(30,136,229,0.3);
+}
+
+.backup-meta { flex: 1; min-width: 0; }
+
+.backup-client {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.backup-info {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+
+.backup-badges { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
+
+/* IEC 60073 — badges com cor semântica */
+.badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.badge-fault   { background: var(--iec-red-bg);    border: 1px solid var(--iec-red-bdr);    color: #EF9A9A; }
+.badge-photo   { background: var(--iec-blue-bg);   border: 1px solid var(--iec-blue-bdr);   color: #90CAF9; }
+.badge-ok      { background: var(--iec-green-bg);  border: 1px solid var(--iec-green-bdr);  color: #A5D6A7; }
+.badge-warning { background: var(--iec-yellow-bg); border: 1px solid var(--iec-yellow-bdr); color: var(--iec-yellow); }
+
+.backup-chevron { color: var(--text-dim); font-size: 12px; transition: transform 0.25s; flex-shrink: 0; }
+.backup-card.expanded .backup-chevron { transform: rotate(180deg); }
+
+.backup-body {
+  display: none;
+  padding: 0 16px 18px;
+  border-top: 1px solid var(--border-dim);
+  animation: fadeIn 0.2s ease;
+}
+.backup-card.expanded .backup-body { display: block; }
+
+.backup-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--iec-cyan);
+  margin: 16px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.backup-section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-dim);
+}
+
+.backup-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 6px;
+}
+.backup-photo {
+  aspect-ratio: 1;
+  border-radius: var(--r);
+  overflow: hidden;
+  border: 1px solid var(--border-normal);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.backup-photo:hover { transform: scale(1.05); border-color: var(--iec-blue); }
+.backup-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+.backup-params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 7px;
+}
+.backup-param-item {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r);
+  padding: 8px 10px;
+}
+.backup-param-num  { font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); }
+.backup-param-name { font-size: 12px; color: var(--text-secondary); margin: 2px 0; }
+.backup-param-val  {
+  font-family: var(--font-data);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--iec-cyan);
+}
+.backup-param-unit { font-size: 11px; color: var(--text-dim); margin-left: 3px; }
+
+.backup-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPORT BAR
+═══════════════════════════════════════════════════════════════ */
+.export-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-radius: var(--r2);
+}
+.export-info { font-size: 13px; color: var(--text-secondary); font-family: var(--font-mono); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SYNC BANNER — IEC 60073: AMARELO = Advertência / Atenção
+═══════════════════════════════════════════════════════════════ */
+.sync-banner {
+  background: var(--iec-yellow-bg);
+  border: 1px solid var(--iec-yellow-bdr);
+  border-left: 4px solid var(--iec-yellow);
+  border-radius: var(--r);
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--iec-yellow);
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.sync-banner-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN LOGIN
+═══════════════════════════════════════════════════════════════ */
+.admin-login-wrap { max-width: 400px; margin: 40px auto; }
+
+.admin-login-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-top: 3px solid var(--iec-blue);
+  border-radius: var(--r2);
+  padding: 32px 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+.admin-lock-icon { text-align: center; font-size: 2.8rem; margin-bottom: 16px; }
+
+.admin-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.admin-subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: -18px;
+  margin-bottom: 24px;
+  font-family: var(--font-mono);
+}
+
+.input-password-wrap { position: relative; }
+.input-password-wrap .form-input { padding-right: 44px; }
+
+.toggle-pw {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: var(--text-dim); cursor: pointer;
+  font-size: 16px; padding: 0;
+  transition: color 0.15s;
+}
+.toggle-pw:hover { color: var(--text-primary); }
+
+/* IEC 60073 — Vermelho = erro */
+.admin-error {
+  background: var(--iec-red-bg);
+  border: 1px solid var(--iec-red-bdr);
+  border-left: 4px solid var(--iec-red);
+  border-radius: var(--r);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #EF9A9A;
+  margin-top: 12px;
+  display: none;
+  animation: fadeIn 0.2s;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN TOPBAR
+═══════════════════════════════════════════════════════════════ */
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: var(--iec-blue-bg);
+  border: 1px solid var(--iec-blue-bdr);
+  border-left: 4px solid var(--iec-blue);
+  border-radius: var(--r);
+}
+.admin-topbar-info {
+  font-size: 13px;
+  color: #90CAF9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FAULT REF TABLE
+═══════════════════════════════════════════════════════════════ */
+.fault-ref-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.fault-ref-table th {
+  background: var(--bg-overlay);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid var(--iec-blue);
+  white-space: nowrap;
+}
+.fault-ref-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  color: var(--text-primary);
+  vertical-align: top;
+  line-height: 1.4;
+}
+.fault-ref-table tr:hover td { background: rgba(255,255,255,0.025); }
+
+/* IEC 60073 — código de falha em vermelho */
+.fault-code-cell {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #EF9A9A;
+  white-space: nowrap;
+}
+
+/* Severidade — IEC 60073 */
+.sev-high { color: var(--iec-red);    font-weight: 700; font-size: 16px; }
+.sev-med  { color: var(--iec-yellow); font-weight: 700; font-size: 16px; }
+.sev-low  { color: var(--iec-green);  font-weight: 700; font-size: 16px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TERMINAL BLOCK — resumo técnico
+═══════════════════════════════════════════════════════════════ */
+.terminal-block {
+  background: #0D1117;
+  border: 1px solid var(--border-normal);
+  border-left: 3px solid var(--iec-cyan);
+  border-radius: var(--r);
+  padding: 16px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.8;
+  overflow-x: auto;
+}
+.t-dim    { color: var(--text-dim); }
+.t-cyan   { color: var(--iec-cyan); font-weight: 700; }
+.t-red    { color: #EF9A9A; font-weight: 700; }
+.t-yellow { color: var(--iec-yellow); }
+.t-green  { color: #A5D6A7; }
+.t-blue   { color: #90CAF9; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST — IEC: cor semântica por tipo
+═══════════════════════════════════════════════════════════════ */
+#toast-container {
+  position: fixed;
+  bottom: 24px; right: 16px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 340px;
+  width: calc(100vw - 32px);
+}
+
+.toast {
+  background: var(--bg-surface);
+  border-radius: var(--r);
+  padding: 13px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toastIn 0.25s ease;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-normal);
+  line-height: 1.4;
+}
+.toast-success { border-left: 4px solid var(--iec-green);  color: #A5D6A7; }
+.toast-error   { border-left: 4px solid var(--iec-red);    color: #EF9A9A; }
+.toast-info    { border-left: 4px solid var(--iec-blue);   color: #90CAF9; }
+.toast-warning { border-left: 4px solid var(--iec-yellow); color: var(--iec-yellow); }
+
+@keyframes toastIn  { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(30px); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHTBOX
+═══════════════════════════════════════════════════════════════ */
+#lightbox {
+  position: fixed; inset: 0; z-index: 20000;
+  background: rgba(0,0,0,0.92);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+}
+#lightbox.open { display: flex; animation: fadeIn 0.2s; }
+#lightbox img {
+  max-width: 92vw; max-height: 88vh;
+  border-radius: var(--r2);
+  border: 2px solid var(--iec-blue-bdr);
+  box-shadow: var(--shadow-lg);
+}
+#lightbox-close {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid var(--border-normal);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+#lightbox-close:hover { background: var(--iec-red-bg); border-color: var(--iec-red-bdr); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 15000;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; animation: fadeIn 0.2s; }
+
+.modal-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-normal);
+  border-top: 3px solid var(--iec-blue);
+  border-radius: var(--r2);
+  padding: 24px;
+  max-width: 460px;
+  width: 100%;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.modal-close {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: none;
+  color: var(--text-dim); font-size: 18px;
+  cursor: pointer; transition: color 0.15s;
+  padding: 2px;
+}
+.modal-close:hover { color: var(--iec-red); }
+
+/* ═══════════════════════════════════════════════════════════════
+   INFO GRID
+═══════════════════════════════════════════════════════════════ */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) { .info-grid { grid-template-columns: 1fr; } }
+
+.info-item {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r);
+  padding: 12px 14px;
+}
+.info-item-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.info-item-val { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════════════════════ */
+.empty-state { text-align: center; padding: 48px 16px; }
+.empty-icon  { font-size: 3rem; margin-bottom: 12px; opacity: 0.3; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--text-secondary); }
+.empty-sub   { font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SPINNER
+═══════════════════════════════════════════════════════════════ */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   QUICK FAULT BUTTONS
+═══════════════════════════════════════════════════════════════ */
+.quick-fault-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+
+.quick-fault-btn {
+  background: var(--iec-red-bg);
+  border: 1px solid var(--iec-red-bdr);
+  border-radius: 4px;
+  color: #EF9A9A;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 36px;
+}
+.quick-fault-btn:hover { background: rgba(229,57,53,0.22); border-color: var(--iec-red); color: #fff; }
+
+.quick-warn-btn {
+  background: var(--iec-yellow-bg);
+  border: 1px solid var(--iec-yellow-bdr);
+  border-radius: 4px;
+  color: var(--iec-yellow);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 36px;
+}
+.quick-warn-btn:hover { background: rgba(253,216,53,0.2); border-color: var(--iec-yellow); }
+
+/* ═══════════════════════════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════════════════════════ */
+.divider {
+  height: 1px;
+  background: var(--border-dim);
+  margin: 16px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .header-inner { height: 52px; }
+  .logo-title { font-size: 16px; }
+  #main-content { padding: 14px 12px 72px; }
+  .card { padding: 14px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .stat-val { font-size: 26px; }
+  .tab-btn { padding: 10px 13px; font-size: 12px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHAKE ANIMATION
+═══════════════════════════════════════════════════════════════ */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+/* ═══════════════════════════════════════════════════════════════
+   IEC STATUS INDICATOR STRIP (topo do card)
+═══════════════════════════════════════════════════════════════ */
+.card-status-strip {
+  height: 3px;
+  border-radius: var(--r2) var(--r2) 0 0;
+  margin: -18px -18px 16px;
+}
+.strip-normal  { background: var(--iec-green); }
+.strip-fault   { background: var(--iec-red); }
+.strip-warning { background: var(--iec-yellow); }
+.strip-info    { background: var(--iec-blue); }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════ -->
+<header id="app-header">
+  <div class="header-inner">
+    <div class="logo-block">
+      <div class="logo-title glitch" data-text="PEAK_150">PEAK_150</div>
+      <div class="logo-sub">Handheld Field Tool · IEC 60073 · v2.4.1</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="status-pill" id="status-pill">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">ONLINE</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     NAV TABS
+═══════════════════════════════════════════════════════════ -->
+<nav id="nav-tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active" onclick="switchTab('handheld')" id="tab-handheld">
+      <span class="tab-icon">📡</span> Handheld
+    </button>
+    <button class="tab-btn" onclick="switchTab('backups')" id="tab-backups">
+      <span class="tab-icon">💾</span> Meus Backups
+      <span class="tab-badge" id="backup-count-badge">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('faults')" id="tab-faults">
+      <span class="tab-icon">⚠️</span> Ref. Falhas
+    </button>
+    <button class="tab-btn" onclick="switchTab('admin')" id="tab-admin">
+      <span class="tab-icon">🔐</span> Admin
+    </button>
+    <button class="tab-btn" onclick="switchTab('about')" id="tab-about">
+      <span class="tab-icon">ℹ️</span> Sobre
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════ -->
+<main id="main-content">
+
+  <!-- ──────────────────────────────────────────────────────
+       TAB: HANDHELD
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel active" id="panel-handheld">
+
+    <div class="section-header">
+      <div class="section-icon">📡</div>
+      <div>
+        <div class="section-title">Captura de Campo — Handheld</div>
+        <div class="section-sub">Peak 150 · Diagnóstico & Backup em campo · IEC 60073</div>
+      </div>
+    </div>
+
+    <!-- Step bar -->
+    <div class="step-bar" id="step-bar">
+      <div class="step-wrapper active" id="sw-0">
+        <div class="step-circle active" id="sc-0">1</div>
+        <div class="step-label">Cliente</div>
+      </div>
+      <div class="step-line" id="sl-0"></div>
+      <div class="step-wrapper" id="sw-1">
+        <div class="step-circle" id="sc-1">2</div>
+        <div class="step-label">Fotos</div>
+      </div>
+      <div class="step-line" id="sl-1"></div>
+      <div class="step-wrapper" id="sw-2">
+        <div class="step-circle" id="sc-2">3</div>
+        <div class="step-label">Falhas</div>
+      </div>
+      <div class="step-line" id="sl-2"></div>
+      <div class="step-wrapper" id="sw-3">
+        <div class="step-circle" id="sc-3">4</div>
+        <div class="step-label">Parâmetros</div>
+      </div>
+      <div class="step-line" id="sl-3"></div>
+      <div class="step-wrapper" id="sw-4">
+        <div class="step-circle" id="sc-4">5</div>
+        <div class="step-label">Salvar</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: CLIENTE -->
+    <div class="step-panel active" id="step-1">
+      <div class="card">
+        <div class="card-status-strip strip-info"></div>
+        <div class="card-label">Etapa 1 de 5 — Identificação do Atendimento</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome do Cliente <span class="req">*</span></label>
+            <input class="form-input" id="f-client" type="text" placeholder="Ex: Indústria ABC Ltda" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">N° OS / Chamado</label>
+            <input class="form-input" id="f-os" type="text" placeholder="OS-2024-001" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Técnico Responsável</label>
+            <input class="form-input" id="f-tech" type="text" placeholder="Seu nome" autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modelo do Drive</label>
+            <select class="form-select" id="f-model">
+              <option value="">Selecione o modelo...</option>
+              <option value="Peak 150 — 5A">Peak 150 — 5A</option>
+              <option value="Peak 150 — 10A">Peak 150 — 10A</option>
+              <option value="Peak 150 — 20A">Peak 150 — 20A</option>
+              <option value="Peak 150 — 30A">Peak 150 — 30A</option>
+              <option value="Peak 150 — 50A">Peak 150 — 50A</option>
+              <option value="Peak 150 — 75A">Peak 150 — 75A</option>
+              <option value="Peak 150 — 100A">Peak 150 — 100A</option>
+              <option value="Peak 150 — 150A">Peak 150 — 150A</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Localização / Planta</label>
+          <input class="form-input" id="f-location" type="text" placeholder="Ex: Linha de produção 3 — Motor bomba" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descrição do Problema</label>
+          <textarea class="form-textarea" id="f-desc" placeholder="Descreva brevemente o problema relatado pelo cliente..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;">
+          <button class="btn btn-primary" onclick="nextStep(1)">Próximo: Fotos →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: FOTOS -->
+    <div class="step-panel" id="step-2">
+      <div class="card">
+        <div class="card-status-strip strip-info"></div>
+        <div class="card-label">Etapa 2 de 5 — Registro Fotográfico</div>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+          Capture fotos do display, placa de identificação, fiação e qualquer anomalia visual.
+        </p>
+        <div class="btn-group" style="margin-bottom:14px;">
+          <button class="btn btn-primary" onclick="triggerCamera()">📷 Câmera</button>
+          <button class="btn btn-neutral" onclick="triggerGallery()">🖼️ Galeria</button>
+        </div>
+        <input type="file" id="input-camera" accept="image/*" capture="environment" multiple style="display:none" onchange="handlePhotos(this)">
+        <input type="file" id="input-gallery" accept="image/*" multiple style="display:none" onchange="handlePhotos(this)">
+        <div class="photo-zone" id="drop-zone"
+          ondragover="event.preventDefault();this.classList.add('drag-over')"
+          ondragleave="this.classList.remove('drag-over')"
+          ondrop="handleDrop(event)"
+          onclick="triggerGallery()">
+          <div class="photo-zone-icon">📸</div>
+          <div class="photo-zone-text">Arraste fotos aqui ou <span>clique para selecionar</span></div>
+          <div class="photo-zone-hint">JPG, PNG, WEBP — máximo 5 fotos</div>
+        </div>
+        <div class="photo-grid" id="photo-grid"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px;gap:8px;">
+          <button class="btn btn-neutral btn-sm" onclick="prevStep(2)">← Voltar</button>
+          <button class="btn btn-primary" onclick="nextStep(2)">Próximo: Falhas →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: FALHAS -->
+    <div class="step-panel" id="step-3">
+      <div class="card">
+        <div class="card-status-strip strip-fault"></div>
+        <div class="card-label">Etapa 3 de 5 — Códigos de Falha</div>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+          Insira os códigos de falha exibidos no display do Peak 150.
+        </p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input class="form-input" id="fault-input" type="text" placeholder="Ex: F001, E23, OC..." style="flex:1"
+            onkeydown="if(event.key==='Enter')addFaultChip()">
+          <button class="btn btn-danger" onclick="addFaultChip()">+ Adicionar</button>
+        </div>
+        <div class="fault-chips" id="fault-chips"></div>
+        <div class="divider"></div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px;">
+          ▌ Falhas Comuns — Peak 150
+        </div>
+        <div style="margin-bottom:8px;font-size:12px;color:var(--text-dim);">
+          🔴 Falhas (trip imediato)
+        </div>
+        <div class="quick-fault-grid">
+          <button class="quick-fault-btn" onclick="quickFault('F001')">F001</button>
+          <button class="quick-fault-btn" onclick="quickFault('F002')">F002</button>
+          <button class="quick-fault-btn" onclick="quickFault('F003')">F003</button>
+          <button class="quick-fault-btn" onclick="quickFault('F004')">F004</button>
+          <button class="quick-fault-btn" onclick="quickFault('F005')">F005</button>
+          <button class="quick-fault-btn" onclick="quickFault('OC')">OC</button>
+          <button class="quick-fault-btn" onclick="quickFault('OV')">OV</button>
+          <button class="quick-fault-btn" onclick="quickFault('UV')">UV</button>
+          <button class="quick-fault-btn" onclick="quickFault('GF')">GF</button>
+          <button class="quick-fault-btn" onclick="quickFault('PH')">PH</button>
+          <button class="quick-fault-btn" onclick="quickFault('SC')">SC</button>
+        </div>
+        <div style="margin-top:12px;margin-bottom:8px;font-size:12px;color:var(--text-dim);">
+          🟡 Advertências (operação continua)
+        </div>
+        <div class="quick-fault-grid">
+          <button class="quick-warn-btn" onclick="quickFault('E01')">E01</button>
+          <button class="quick-warn-btn" onclick="quickFault('E02')">E02</button>
+          <button class="quick-warn-btn" onclick="quickFault('E03')">E03</button>
+          <button class="quick-warn-btn" onclick="quickFault('OH')">OH</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px;gap:8px;">
+          <button class="btn btn-neutral btn-sm" onclick="prevStep(3)">← Voltar</button>
+          <button class="btn btn-primary" onclick="nextStep(3)">Próximo: Parâmetros →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4: PARÂMETROS -->
+    <div class="step-panel" id="step-4">
+      <div class="card">
+        <div class="card-status-strip strip-info"></div>
+        <div class="card-label">Etapa 4 de 5 — Parâmetros Técnicos</div>
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:16px;">
+          Registre os valores lidos no drive. Campos em branco serão ignorados no backup.
+        </p>
+        <div class="param-table-wrap">
+          <table class="param-table">
+            <thead>
+              <tr>
+                <th>Nº</th>
+                <th>Parâmetro</th>
+                <th>Valor Lido</th>
+                <th>Unidade</th>
+              </tr>
+            </thead>
+            <tbody id="param-tbody"></tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:18px;gap:8px;">
+          <button class="btn btn-neutral btn-sm" onclick="prevStep(4)">← Voltar</button>
+          <button class="btn btn-primary" onclick="nextStep(4)">Próximo: Salvar →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5: SALVAR -->
+    <div class="step-panel" id="step-5">
+      <div class="card">
+        <div class="card-status-strip strip-normal"></div>
+        <div class="card-label">Etapa 5 de 5 — Confirmar e Salvar Backup</div>
+        <div class="terminal-block" id="summary-terminal" style="margin-bottom:16px;"></div>
+        <div class="form-group">
+          <label class="form-label">Observações Finais / Ações Realizadas</label>
+          <textarea class="form-textarea" id="f-notes" placeholder="Ações realizadas, peças substituídas, próximos passos..."></textarea>
+        </div>
+        <div class="btn-group" style="margin-top:10px;">
+          <button class="btn btn-neutral btn-sm" onclick="prevStep(5)">← Voltar</button>
+          <button class="btn btn-success btn-lg" onclick="saveBackup()" id="save-btn">
+            💾 Salvar Backup
+          </button>
+          <button class="btn btn-warning btn-sm" onclick="resetForm()">↺ Novo Atendimento</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel-handheld -->
+
+
+  <!-- ──────────────────────────────────────────────────────
+       TAB: MEUS BACKUPS
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-backups">
+
+    <div class="section-header">
+      <div class="section-icon">💾</div>
+      <div>
+        <div class="section-title">Meus Backups</div>
+        <div class="section-sub">Dados salvos localmente neste dispositivo</div>
+      </div>
+    </div>
+
+    <div class="sync-banner">
+      <span class="sync-banner-icon">⚠</span>
+      <span>Dados armazenados localmente via LocalStorage. Use a exportação JSON para compartilhar ou fazer backup externo em nuvem.</span>
+    </div>
+
+    <div class="stats-row" id="my-stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="my-total">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="my-faults" style="color:#EF9A9A;">0</div>
+        <div class="stat-label">Com Falhas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="my-photos" style="color:#90CAF9;">0</div>
+        <div class="stat-label">Fotos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="my-clients" style="color:#A5D6A7;">0</div>
+        <div class="stat-label">Clientes</div>
+      </div>
+    </div>
+
+    <div class="export-bar">
+      <div class="export-info" id="export-info">Nenhum backup salvo</div>
+      <div class="btn-group">
+        <button class="btn btn-primary btn-sm" onclick="exportAllBackups()">⬇ Exportar Todos</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmClearAll()">🗑 Limpar Tudo</button>
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="my-search" type="text" placeholder="Buscar por cliente, OS, técnico..." oninput="renderMyBackups()">
+    </div>
+
+    <div id="my-backup-list"></div>
+  </div><!-- /panel-backups -->
+
+
+  <!-- ──────────────────────────────────────────────────────
+       TAB: REFERÊNCIA DE FALHAS
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-faults">
+
+    <div class="section-header">
+      <div class="section-icon">⚠️</div>
+      <div>
+        <div class="section-title">Referência de Falhas — Peak 150</div>
+        <div class="section-sub">Banco de dados de erros e soluções · IEC 60073</div>
+      </div>
+    </div>
+
+    <!-- Legenda IEC -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);">
+        <span style="color:var(--iec-red);font-size:16px;">●</span> Falha — Trip imediato (IEC 60073: Vermelho)
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);">
+        <span style="color:var(--iec-yellow);font-size:16px;">●</span> Advertência — Atenção requerida (IEC 60073: Amarelo)
+      </div>
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="fault-search" type="text" placeholder="Buscar código ou descrição..." oninput="filterFaults()">
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="fault-ref-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Causa Provável</th>
+              <th>Ação Recomendada</th>
+              <th>Nível</th>
+            </tr>
+          </thead>
+          <tbody id="fault-ref-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /panel-faults -->
+
+
+  <!-- ──────────────────────────────────────────────────────
+       TAB: ADMIN
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-admin">
+
+    <!-- LOGIN -->
+    <div id="admin-login-section">
+      <div class="admin-login-wrap">
+        <div class="admin-login-box">
+          <div class="admin-lock-icon">🔐</div>
+          <div class="admin-title">Acesso Restrito</div>
+          <div class="admin-subtitle">// Painel Administrativo</div>
+          <div class="form-group">
+            <label class="form-label">Senha de Administrador</label>
+            <div class="input-password-wrap">
+              <input class="form-input" id="admin-pw" type="password" placeholder="••••••••"
+                onkeydown="if(event.key==='Enter')adminLogin()">
+              <button class="toggle-pw" onclick="togglePw('admin-pw',this)" type="button">👁</button>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="adminLogin()" style="margin-top:10px;">
+            🔓 Entrar no Painel
+          </button>
+          <div class="admin-error" id="admin-error">⛔ Senha incorreta. Tente novamente.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="admin-dashboard-section" style="display:none;">
+
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <div>
+          <div class="section-title">Painel Administrativo</div>
+          <div class="section-sub">Visualização global de todos os backups</div>
+        </div>
+      </div>
+
+      <div class="admin-topbar">
+        <div class="admin-topbar-info">
+          <span>👤</span>
+          <span>Administrador autenticado</span>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary btn-sm" onclick="adminExportAll()">⬇ Exportar Tudo</button>
+          <button class="btn btn-danger btn-sm" onclick="adminLogout()">🔒 Sair</button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val" id="adm-total">0</div>
+          <div class="stat-label">Total Backups</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="adm-clients" style="color:#A5D6A7;">0</div>
+          <div class="stat-label">Clientes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="adm-faults" style="color:#EF9A9A;">0</div>
+          <div class="stat-label">Com Falhas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="adm-photos" style="color:#90CAF9;">0</div>
+          <div class="stat-label">Fotos</div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="admin-search" type="text" placeholder="Buscar backups..." oninput="renderAdminBackups()">
+      </div>
+
+      <div id="admin-backup-list"></div>
+    </div>
+
+  </div><!-- /panel-admin -->
+
+
+  <!-- ──────────────────────────────────────────────────────
+       TAB: SOBRE
+  ────────────────────────────────────────────────────── -->
+  <div class="tab-panel" id="panel-about">
+
+    <div class="section-header">
+      <div class="section-icon">ℹ️</div>
+      <div>
+        <div class="section-title">Sobre o Peak 150 Handheld Tool</div>
+        <div class="section-sub">Informações do sistema e conformidade normativa</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div style="text-align:center;padding:20px 0 8px;">
+        <div style="font-family:var(--font-mono);font-size:28px;font-weight:700;color:var(--iec-cyan);letter-spacing:0.12em;margin-bottom:6px;">PEAK_150</div>
+        <div style="font-size:13px;color:var(--text-secondary);font-family:var(--font-mono);letter-spacing:0.15em;">HANDHELD FIELD TOOL // v2.4.1</div>
+        <div style="margin-top:12px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+          <span style="background:var(--iec-blue-bg);border:1px solid var(--iec-blue-bdr);border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#90CAF9;letter-spacing:0.08em;">IEC 60073</span>
+          <span style="background:var(--iec-blue-bg);border:1px solid var(--iec-blue-bdr);border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#90CAF9;letter-spacing:0.08em;">IEC 61310-1</span>
+          <span style="background:var(--iec-blue-bg);border:1px solid var(--iec-blue-bdr);border-radius:4px;padding:4px 10px;font-size:11px;font-weight:700;color:#90CAF9;letter-spacing:0.08em;">ISA-101 HMI</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid" style="margin-bottom:16px;">
+      <div class="info-item"><div class="info-item-label">Versão</div><div class="info-item-val">2.4.1</div></div>
+      <div class="info-item"><div class="info-item-label">Plataforma</div><div class="info-item-val">Web / PWA</div></div>
+      <div class="info-item"><div class="info-item-label">Armazenamento</div><div class="info-item-val">LocalStorage</div></div>
+      <div class="info-item"><div class="info-item-label">Equipamento</div><div class="info-item-val">Peak 150 Series</div></div>
+      <div class="info-item"><div class="info-item-label">Backups Salvos</div><div class="info-item-val" id="about-backup-count">—</div></div>
+      <div class="info-item"><div class="info-item-label">Uso de Armazenamento</div><div class="info-item-val" id="about-storage">—</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-label">Normas IEC Aplicadas</div>
+      <div class="terminal-block">
+        <div><span class="t-cyan">IEC 60073</span>  <span class="t-dim">—</span> Codificação de cores: Vermelho=Falha, Amarelo=Advertência, Verde=Normal, Azul=Info</div>
+        <div><span class="t-cyan">IEC 61310-1</span> <span class="t-dim">—</span> Sinais visuais em máquinas: contraste, tamanho mínimo de fonte, legibilidade</div>
+        <div><span class="t-cyan">ISA-101</span>     <span class="t-dim">—</span> High-Performance HMI: fundo cinza neutro, cor apenas para status e alarmes</div>
+        <div><span class="t-cyan">WCAG AA</span>     <span class="t-dim">—</span> Contraste mínimo 4.5:1 para texto normal, 3:1 para texto grande</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-label">Funcionalidades</div>
+      <div class="terminal-block">
+        <div><span class="t-green">✓</span> Captura de fotos via câmera ou galeria (base64)</div>
+        <div><span class="t-green">✓</span> Registro de códigos de falha com banco de referência</div>
+        <div><span class="t-green">✓</span> Tabela de parâmetros técnicos do Peak 150 (P01–P15)</div>
+        <div><span class="t-green">✓</span> Backup local via LocalStorage (offline-first)</div>
+        <div><span class="t-green">✓</span> Exportação JSON individual ou em lote</div>
+        <div><span class="t-green">✓</span> Painel administrativo protegido por senha</div>
+        <div><span class="t-yellow">◈</span> <span class="t-dim">Em breve:</span> Análise IA de fotos de display (LLM)</div>
+        <div><span class="t-yellow">◈</span> <span class="t-dim">Em breve:</span> Sincronização em nuvem</div>
+        <div><span class="t-yellow">◈</span> <span class="t-dim">Em breve:</span> Diagnóstico automático por código de falha</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Dados de Demonstração</div>
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:14px;">
+        Carregue backups de demonstração para explorar as funcionalidades do painel administrativo.
+      </p>
+      <button class="btn btn-primary" onclick="loadDemoData()">🎭 Carregar Dados Demo</button>
+    </div>
+
+  </div><!-- /panel-about -->
+
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST CONTAINER
+═══════════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LIGHTBOX
+═══════════════════════════════════════════════════════════ -->
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()" type="button">✕</button>
+  <img id="lightbox-img" src="" alt="Foto ampliada">
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONFIRM MODAL
+═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('confirm-modal')" type="button">✕</button>
+    <div class="modal-title" id="confirm-title">Confirmar Ação</div>
+    <p id="confirm-msg" style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;line-height:1.5;"></p>
+    <div class="btn-group">
+      <button class="btn btn-danger" id="confirm-ok-btn">Confirmar</button>
+      <button class="btn btn-neutral" onclick="closeModal('confirm-modal')" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONSTANTS & STATE
+════════════════════════════════════════════════════════════ */
+const STORAGE_KEY = 'peak150_backups';
+const ADMIN_PW    = 'peak150@admin';
+const MAX_PHOTOS  = 5;
+
+let currentStep    = 1;
+let capturedPhotos = [];
+let faultCodes     = [];
+let adminLoggedIn  = false;
+
+/* ════════════════════════════════════════════════════════════
+   PEAK 150 PARAMETERS
+════════════════════════════════════════════════════════════ */
+const PEAK_PARAMS = [
+  { num:'P01', name:'Frequência de Saída',       unit:'Hz'  },
+  { num:'P02', name:'Tensão de Saída',            unit:'V'   },
+  { num:'P03', name:'Corrente de Saída',          unit:'A'   },
+  { num:'P04', name:'Tensão do Barramento DC',    unit:'V'   },
+  { num:'P05', name:'Temperatura do Dissipador',  unit:'°C'  },
+  { num:'P06', name:'Velocidade do Motor',        unit:'RPM' },
+  { num:'P07', name:'Torque do Motor',            unit:'%'   },
+  { num:'P08', name:'Frequência de Referência',   unit:'Hz'  },
+  { num:'P09', name:'Tempo de Aceleração',        unit:'s'   },
+  { num:'P10', name:'Tempo de Desaceleração',     unit:'s'   },
+  { num:'P11', name:'Tensão Nominal do Motor',    unit:'V'   },
+  { num:'P12', name:'Corrente Nominal do Motor',  unit:'A'   },
+  { num:'P13', name:'Frequência Nominal',         unit:'Hz'  },
+  { num:'P14', name:'Velocidade Nominal',         unit:'RPM' },
+  { num:'P15', name:'Potência Nominal',           unit:'kW'  },
+];
+
+/* ════════════════════════════════════════════════════════════
+   FAULT REFERENCE DATABASE — IEC 60073
+════════════════════════════════════════════════════════════ */
+const FAULT_DB = [
+  { code:'F001', desc:'Sobrecorrente na saída',        cause:'Curto-circuito no motor ou fiação',          action:'Verificar isolação do motor e cabos de saída',      sev:'high' },
+  { code:'F002', desc:'Sobretensão no barramento DC',  cause:'Desaceleração rápida ou tensão de rede alta', action:'Aumentar tempo de desaceleração (P10)',              sev:'high' },
+  { code:'F003', desc:'Subtensão no barramento DC',    cause:'Queda de tensão na rede ou falha de fase',   action:'Verificar tensão de alimentação e fusíveis',         sev:'high' },
+  { code:'F004', desc:'Sobretemperatura do drive',     cause:'Ventilação insuficiente ou carga excessiva', action:'Verificar ventilação e reduzir carga',                sev:'high' },
+  { code:'F005', desc:'Falha de comunicação',          cause:'Cabo RS485 com defeito ou ruído elétrico',   action:'Verificar cabeamento e terminação de rede',           sev:'med'  },
+  { code:'E01',  desc:'Advertência de temperatura',    cause:'Temperatura elevada mas dentro do limite',   action:'Monitorar temperatura e melhorar ventilação',         sev:'med'  },
+  { code:'E02',  desc:'Advertência de sobrecarga',     cause:'Corrente acima de 100% por tempo prolongado',action:'Verificar carga mecânica e ajustar parâmetros',       sev:'med'  },
+  { code:'E03',  desc:'Advertência de tensão baixa',   cause:'Tensão de alimentação abaixo do nominal',    action:'Verificar qualidade da rede elétrica',                sev:'med'  },
+  { code:'OC',   desc:'Overcurrent — Sobrecorrente',   cause:'Partida rápida, curto ou sobrecarga mecânica',action:'Aumentar rampa de aceleração (P09)',                 sev:'high' },
+  { code:'OV',   desc:'Overvoltage — Sobretensão',     cause:'Frenagem regenerativa ou pico de tensão',    action:'Instalar resistor de frenagem ou aumentar P10',       sev:'high' },
+  { code:'UV',   desc:'Undervoltage — Subtensão',      cause:'Queda de tensão na rede elétrica',           action:'Verificar alimentação e contatos do disjuntor',       sev:'high' },
+  { code:'OH',   desc:'Overheat — Superaquecimento',   cause:'Temperatura ambiente alta ou bloqueio do fan',action:'Limpar filtros e verificar ventilador interno',      sev:'high' },
+  { code:'GF',   desc:'Ground Fault — Falta à terra',  cause:'Isolação do motor degradada',                action:'Medir resistência de isolação (megôhmetro)',          sev:'high' },
+  { code:'PH',   desc:'Phase Loss — Perda de fase',    cause:'Fusível queimado ou contato solto',          action:'Verificar fusíveis e contatos do contator',           sev:'high' },
+  { code:'SC',   desc:'Short Circuit — Curto-circuito',cause:'Falha no IGBT ou curto na saída',            action:'Inspecionar módulo de potência e fiação',             sev:'high' },
+];
+
+/* ════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  buildParamTable();
+  buildFaultRefTable();
+  updateBadgeCount();
+  updateAboutInfo();
+});
+
+/* ════════════════════════════════════════════════════════════
+   TAB NAVIGATION
+════════════════════════════════════════════════════════════ */
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'backups') renderMyBackups();
+  if (name === 'admin' && adminLoggedIn) renderAdminBackups();
+  if (name === 'about') updateAboutInfo();
+}
+
+/* ════════════════════════════════════════════════════════════
+   STEP NAVIGATION
+════════════════════════════════════════════════════════════ */
+function nextStep(from) {
+  if (from === 1 && !document.getElementById('f-client').value.trim()) {
+    showToast('⚠ Informe o nome do cliente para continuar.', 'warning');
+    document.getElementById('f-client').focus();
+    return;
+  }
+  if (from < 5) goToStep(from + 1);
+}
+
+function prevStep(from) {
+  if (from > 1) goToStep(from - 1);
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+
+  for (let i = 0; i < 5; i++) {
+    const sw = document.getElementById('sw-' + i);
+    const sc = document.getElementById('sc-' + i);
+    const sl = document.getElementById('sl-' + i);
+    sw.classList.remove('active', 'done');
+    sc.classList.remove('active', 'done');
+    if (sl) sl.classList.remove('done');
+
+    if (i + 1 < n) {
+      sw.classList.add('done');
+      sc.classList.add('done');
+      sc.textContent = '✓';
+      if (sl) sl.classList.add('done');
+    } else if (i + 1 === n) {
+      sw.classList.add('active');
+      sc.classList.add('active');
+      sc.textContent = n;
+    } else {
+      sc.textContent = i + 1;
+    }
+  }
+
+  currentStep = n;
+  if (n === 5) buildSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ════════════════════════════════════════════════════════════
+   PARAM TABLE
+════════════════════════════════════════════════════════════ */
+function buildParamTable() {
+  const tbody = document.getElementById('param-tbody');
+  tbody.innerHTML = PEAK_PARAMS.map(p => `
+    <tr>
+      <td class="param-num">${p.num}</td>
+      <td class="param-name">${p.name}</td>
+      <td><input type="text" id="pval-${p.num}" placeholder="—" autocomplete="off" inputmode="decimal"></td>
+      <td class="param-unit">${p.unit}</td>
+    </tr>
+  `).join('');
+}
+
+function getParamValues() {
+  return PEAK_PARAMS.map(p => ({
+    num: p.num, name: p.name,
+    value: document.getElementById('pval-' + p.num)?.value?.trim() || '',
+    unit: p.unit
+  })).filter(p => p.value !== '');
+}
+
+/* ════════════════════════════════════════════════════════════
+   FAULT REF TABLE
+════════════════════════════════════════════════════════════ */
+function buildFaultRefTable(filter = '') {
+  const tbody = document.getElementById('fault-ref-body');
+  const rows = FAULT_DB.filter(f =>
+    !filter ||
+    f.code.toLowerCase().includes(filter) ||
+    f.desc.toLowerCase().includes(filter) ||
+    f.cause.toLowerCase().includes(filter) ||
+    f.action.toLowerCase().includes(filter)
+  );
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-dim);font-size:14px;">Nenhuma falha encontrada</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(f => {
+    const sevIcon = f.sev === 'high' ? '🔴' : f.sev === 'med' ? '🟡' : '🟢';
+    const sevLabel = f.sev === 'high' ? 'Falha' : f.sev === 'med' ? 'Advertência' : 'Normal';
+    return `
+      <tr>
+        <td class="fault-code-cell">${f.code}</td>
+        <td style="font-weight:600;">${f.desc}</td>
+        <td style="color:var(--text-secondary);font-size:13px;">${f.cause}</td>
+        <td style="color:#A5D6A7;font-size:13px;">${f.action}</td>
+        <td style="white-space:nowrap;">
+          <span class="sev-${f.sev}">${sevIcon}</span>
+          <span style="font-size:11px;color:var(--text-dim);margin-left:4px;">${sevLabel}</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterFaults() {
+  buildFaultRefTable(document.getElementById('fault-search').value.toLowerCase().trim());
+}
+
+/* ════════════════════════════════════════════════════════════
+   PHOTO HANDLING
+════════════════════════════════════════════════════════════ */
+function triggerCamera()  { document.getElementById('input-camera').click(); }
+function triggerGallery() { document.getElementById('input-gallery').click(); }
+
+function handlePhotos(input) {
+  processFiles(Array.from(input.files));
+  input.value = '';
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  processFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')));
+}
+
+function processFiles(files) {
+  const remaining = MAX_PHOTOS - capturedPhotos.length;
+  if (remaining <= 0) { showToast('Máximo de ' + MAX_PHOTOS + ' fotos atingido.', 'warning'); return; }
+  const toProcess = files.slice(0, remaining);
+  if (files.length > remaining) showToast('Apenas ' + remaining + ' foto(s) adicionada(s) — limite de ' + MAX_PHOTOS + '.', 'info');
+  toProcess.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => { capturedPhotos.push({ dataUrl: e.target.result, name: file.name }); renderPhotoGrid(); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoGrid() {
+  document.getElementById('photo-grid').innerHTML = capturedPhotos.map((p, i) => `
+    <div class="photo-thumb" onclick="openLightbox('${p.dataUrl}')">
+      <img src="${p.dataUrl}" alt="${p.name}">
+      <button class="photo-thumb-del" onclick="event.stopPropagation();removePhoto(${i})" type="button">✕</button>
+    </div>
+  `).join('');
+}
+
+function removePhoto(i) { capturedPhotos.splice(i, 1); renderPhotoGrid(); }
+
+/* ════════════════════════════════════════════════════════════
+   FAULT CHIPS
+════════════════════════════════════════════════════════════ */
+function addFaultChip() {
+  const input = document.getElementById('fault-input');
+  const val = input.value.trim().toUpperCase();
+  if (!val) return;
+  if (faultCodes.includes(val)) { showToast('Código já adicionado.', 'info'); input.value = ''; return; }
+  faultCodes.push(val);
+  input.value = '';
+  renderFaultChips();
+}
+
+function quickFault(code) {
+  if (faultCodes.includes(code)) { showToast('Código já adicionado.', 'info'); return; }
+  faultCodes.push(code);
+  renderFaultChips();
+  showToast('Código ' + code + ' adicionado.', 'info');
+}
+
+function removeFaultChip(i) { faultCodes.splice(i, 1); renderFaultChips(); }
+
+function renderFaultChips() {
+  document.getElementById('fault-chips').innerHTML = faultCodes.map((c, i) => `
+    <span class="fault-chip">${c}
+      <button class="fault-chip-del" onclick="removeFaultChip(${i})" type="button">✕</button>
+    </span>
+  `).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   SUMMARY
+════════════════════════════════════════════════════════════ */
+function buildSummary() {
+  const client   = document.getElementById('f-client').value.trim() || '—';
+  const os       = document.getElementById('f-os').value.trim() || '—';
+  const tech     = document.getElementById('f-tech').value.trim() || '—';
+  const model    = document.getElementById('f-model').value || '—';
+  const location = document.getElementById('f-location').value.trim() || '—';
+  const params   = getParamValues();
+  const now      = new Date().toLocaleString('pt-BR');
+
+  document.getElementById('summary-terminal').innerHTML = `
+<span class="t-dim">// PEAK 150 HANDHELD — RESUMO DO ATENDIMENTO</span>
+<span class="t-dim">// ${now}</span>
+
+<span class="t-cyan">CLIENTE    :</span> ${client}
+<span class="t-cyan">OS         :</span> ${os}
+<span class="t-cyan">TÉCNICO    :</span> ${tech}
+<span class="t-cyan">MODELO     :</span> ${model}
+<span class="t-cyan">LOCALIZAÇÃO:</span> ${location}
+<span class="t-cyan">FOTOS      :</span> ${capturedPhotos.length} capturada(s)
+<span class="t-cyan">FALHAS     :</span> ${faultCodes.length ? '<span class="t-red">' + faultCodes.join(', ') + '</span>' : '<span class="t-green">Nenhuma registrada</span>'}
+<span class="t-cyan">PARÂMETROS :</span> ${params.length} registrado(s)
+  `;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SAVE BACKUP
+════════════════════════════════════════════════════════════ */
+function saveBackup() {
+  const client = document.getElementById('f-client').value.trim();
+  if (!client) { showToast('⚠ Nome do cliente obrigatório.', 'warning'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.innerHTML = '<span class="spinner"></span> Salvando...';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    const backup = {
+      id:        Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      client,
+      os:        document.getElementById('f-os').value.trim(),
+      tech:      document.getElementById('f-tech').value.trim(),
+      model:     document.getElementById('f-model').value,
+      location:  document.getElementById('f-location').value.trim(),
+      desc:      document.getElementById('f-desc').value.trim(),
+      notes:     document.getElementById('f-notes').value.trim(),
+      photos:    capturedPhotos.map(p => p.dataUrl),
+      faults:    [...faultCodes],
+      params:    getParamValues(),
+    };
+
+    const backups = getBackups();
+    backups.unshift(backup);
+    saveBackups(backups);
+
+    btn.innerHTML = '💾 Salvar Backup';
+    btn.disabled = false;
+
+    showToast('✅ Backup salvo com sucesso!', 'success');
+    updateBadgeCount();
+    resetForm();
+  }, 500);
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESET FORM
+════════════════════════════════════════════════════════════ */
+function resetForm() {
+  ['f-client','f-os','f-tech','f-location','f-desc','f-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-model').value = '';
+  capturedPhotos = [];
+  faultCodes = [];
+  renderPhotoGrid();
+  renderFaultChips();
+  buildParamTable();
+  goToStep(1);
+}
+
+/* ════════════════════════════════════════════════════════════
+   LOCALSTORAGE
+════════════════════════════════════════════════════════════ */
+function getBackups() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function saveBackups(arr) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+  catch { showToast('⚠ Armazenamento cheio. Exporte e limpe backups antigos.', 'warning'); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER MY BACKUPS
+════════════════════════════════════════════════════════════ */
+function renderMyBackups() {
+  const backups = getBackups();
+  const q = document.getElementById('my-search').value.toLowerCase().trim();
+  const filtered = q ? backups.filter(b =>
+    (b.client||'').toLowerCase().includes(q) ||
+    (b.os||'').toLowerCase().includes(q) ||
+    (b.tech||'').toLowerCase().includes(q)
+  ) : backups;
+
+  document.getElementById('my-total').textContent   = backups.length;
+  document.getElementById('my-faults').textContent  = backups.filter(b => b.faults?.length).length;
+  document.getElementById('my-photos').textContent  = backups.reduce((s,b) => s + (b.photos?.length||0), 0);
+  document.getElementById('my-clients').textContent = new Set(backups.map(b => b.client)).size;
+  document.getElementById('export-info').textContent = backups.length
+    ? backups.length + ' backup(s) · ' + calcStorageSize()
+    : 'Nenhum backup salvo';
+
+  const list = document.getElementById('my-backup-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">💾</div>
+      <div class="empty-title">${q ? 'Nenhum resultado encontrado' : 'Nenhum backup salvo ainda'}</div>
+      <div class="empty-sub">${q ? 'Tente outro termo de busca' : 'Use a aba Handheld para capturar dados em campo'}</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(b => renderBackupCard(b, false)).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER ADMIN BACKUPS
+════════════════════════════════════════════════════════════ */
+function renderAdminBackups() {
+  const backups = getBackups();
+  const q = document.getElementById('admin-search').value.toLowerCase().trim();
+  const filtered = q ? backups.filter(b =>
+    (b.client||'').toLowerCase().includes(q) ||
+    (b.os||'').toLowerCase().includes(q) ||
+    (b.tech||'').toLowerCase().includes(q)
+  ) : backups;
+
+  document.getElementById('adm-total').textContent   = backups.length;
+  document.getElementById('adm-clients').textContent = new Set(backups.map(b => b.client)).size;
+  document.getElementById('adm-faults').textContent  = backups.filter(b => b.faults?.length).length;
+  document.getElementById('adm-photos').textContent  = backups.reduce((s,b) => s + (b.photos?.length||0), 0);
+
+  const list = document.getElementById('admin-backup-list');
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📂</div>
+      <div class="empty-title">${q ? 'Nenhum resultado' : 'Nenhum backup encontrado'}</div>
+      <div class="empty-sub">Os backups salvos pelos técnicos aparecerão aqui</div>
+    </div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(b => renderBackupCard(b, true)).join('');
+}
+
+/* ════════════════════════════════════════════════════════════
+   BACKUP CARD RENDERER
+════════════════════════════════════════════════════════════ */
+function renderBackupCard(b, isAdmin) {
+  const dt = new Date(b.timestamp).toLocaleString('pt-BR');
+  const initials = (b.client||'?').slice(0,2).toUpperCase();
+
+  const faultBadge  = b.faults?.length
+    ? `<span class="badge badge-fault">⚠ ${b.faults.length} falha${b.faults.length > 1 ? 's' : ''}</span>`
+    : `<span class="badge badge-ok">✓ Normal</span>`;
+  const photosBadge = b.photos?.length
+    ? `<span class="badge badge-photo">📷 ${b.photos.length}</span>` : '';
+
+  const photosHtml = b.photos?.length ? `
+    <div class="backup-section-title">Fotos (${b.photos.length})</div>
+    <div class="backup-photos">
+      ${b.photos.map(src => `<div class="backup-photo" onclick="openLightbox('${src}')"><img src="${src}" alt="foto"></div>`).join('')}
+    </div>` : '';
+
+  const faultsHtml = b.faults?.length ? `
+    <div class="backup-section-title">Códigos de Falha — IEC 60073: Vermelho</div>
+    <div class="fault-chips" style="margin-top:0;">
+      ${b.faults.map(f => `<span class="fault-chip">${f}</span>`).join('')}
+    </div>` : '';
+
+  const paramsHtml = b.params?.length ? `
+    <div class="backup-section-title">Parâmetros Registrados (${b.params.length})</div>
+    <div class="backup-params-grid">
+      ${b.params.map(p => `
+        <div class="backup-param-item">
+          <div class="backup-param-num">${p.num}</div>
+          <div class="backup-param-name">${p.name}</div>
+          <div><span class="backup-param-val">${p.value}</span><span class="backup-param-unit">${p.unit}</span></div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const notesHtml = b.notes ? `
+    <div class="backup-section-title">Observações</div>
+    <div style="font-size:14px;color:var(--text-secondary);padding:10px 12px;background:var(--bg-raised);border-radius:var(--r);line-height:1.5;">${b.notes}</div>` : '';
+
+  const stripClass = b.faults?.length ? 'strip-fault' : 'strip-normal';
+
+  return `
+    <div class="backup-card" id="bc-${b.id}">
+      <div class="backup-header" onclick="toggleBackupCard('${b.id}')">
+        <div class="backup-avatar">${initials}</div>
+        <div class="backup-meta">
+          <div class="backup-client">${b.client}</div>
+          <div class="backup-info">${dt} · ${b.model||'—'} · OS: ${b.os||'—'}</div>
+        </div>
+        <div class="backup-badges">${faultBadge}${photosBadge}</div>
+        <div class="backup-chevron">▼</div>
+      </div>
+      <div class="backup-body">
+        <div class="card-status-strip ${stripClass}" style="margin:-0px -16px 14px;border-radius:0;"></div>
+        <div class="info-grid" style="margin-top:4px;">
+          <div class="info-item"><div class="info-item-label">Técnico</div><div class="info-item-val">${b.tech||'—'}</div></div>
+          <div class="info-item"><div class="info-item-label">Localização</div><div class="info-item-val">${b.location||'—'}</div></div>
+        </div>
+        ${b.desc ? `<div style="margin-top:10px;font-size:14px;color:var(--text-secondary);line-height:1.5;padding:10px 12px;background:var(--bg-raised);border-radius:var(--r);">${b.desc}</div>` : ''}
+        ${photosHtml}${faultsHtml}${paramsHtml}${notesHtml}
+        <div class="backup-actions">
+          <button class="btn btn-primary btn-sm" onclick="exportBackup('${b.id}')">⬇ Exportar JSON</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.id}',${isAdmin})">🗑 Excluir</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggleBackupCard(id) {
+  document.getElementById('bc-' + id).classList.toggle('expanded');
+}
+
+/* ════════════════════════════════════════════════════════════
+   DELETE BACKUP
+════════════════════════════════════════════════════════════ */
+function deleteBackup(id, isAdmin) {
+  showConfirm('Excluir Backup', 'Tem certeza que deseja excluir este backup? Esta ação não pode ser desfeita.', () => {
+    saveBackups(getBackups().filter(b => b.id !== id));
+    showToast('Backup excluído.', 'info');
+    updateBadgeCount();
+    if (isAdmin) renderAdminBackups(); else renderMyBackups();
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   EXPORT
+════════════════════════════════════════════════════════════ */
+function exportBackup(id) {
+  const backup = getBackups().find(b => b.id === id);
+  if (!backup) return;
+  downloadJSON([backup], 'peak150_' + backup.client.replace(/\s+/g,'_') + '_' + id + '.json');
+  showToast('Exportação iniciada.', 'success');
+}
+
+function exportAllBackups() {
+  const backups = getBackups();
+  if (!backups.length) { showToast('Nenhum backup para exportar.', 'info'); return; }
+  downloadJSON(backups, 'peak150_backups_' + Date.now() + '.json');
+  showToast(backups.length + ' backup(s) exportado(s).', 'success');
+}
+
+function adminExportAll() { exportAllBackups(); }
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ════════════════════════════════════════════════════════════
+   CLEAR ALL
+════════════════════════════════════════════════════════════ */
+function confirmClearAll() {
+  showConfirm('Limpar Todos os Backups', 'Todos os backups serão excluídos permanentemente. Esta ação não pode ser desfeita!', () => {
+    saveBackups([]);
+    updateBadgeCount();
+    renderMyBackups();
+    showToast('Todos os backups foram removidos.', 'info');
+  });
+}
+
+/* ════════════════════════════════════════════════════════════
+   ADMIN AUTH
+════════════════════════════════════════════════════════════ */
+function adminLogin() {
+  const pw = document.getElementById('admin-pw').value;
+  const errEl = document.getElementById('admin-error');
+  if (pw === ADMIN_PW) {
+    adminLoggedIn = true;
+    document.getElementById('admin-login-section').style.display = 'none';
+    document.getElementById('admin-dashboard-section').style.display = 'block';
+    renderAdminBackups();
+    showToast('✅ Acesso administrativo concedido.', 'success');
+    errEl.style.display = 'none';
+  } else {
+    errEl.style.display = 'block';
+    const box = document.getElementById('admin-pw');
+    box.classList.add('shake');
+    setTimeout(() => box.classList.remove('shake'), 500);
+  }
+}
+
+function adminLogout() {
+  adminLoggedIn = false;
+  document.getElementById('admin-login-section').style.display = 'block';
+  document.getElementById('admin-dashboard-section').style.display = 'none';
+  document.getElementById('admin-pw').value = '';
+  showToast('Sessão administrativa encerrada.', 'info');
+}
+
+function togglePw(id, btn) {
+  const el = document.getElementById(id);
+  if (el.type === 'password') { el.type = 'text'; btn.textContent = '🙈'; }
+  else { el.type = 'password'; btn.textContent = '👁'; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   BADGE COUNT
+════════════════════════════════════════════════════════════ */
+function updateBadgeCount() {
+  const n = getBackups().length;
+  document.getElementById('backup-count-badge').textContent = n;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ABOUT INFO
+════════════════════════════════════════════════════════════ */
+function updateAboutInfo() {
+  const n = getBackups().length;
+  document.getElementById('about-backup-count').textContent = n + ' backup(s)';
+  document.getElementById('about-storage').textContent = calcStorageSize();
+}
+
+function calcStorageSize() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY) || '[]';
+    const kb = (raw.length * 2 / 1024).toFixed(1);
+    return kb + ' KB';
+  } catch { return '—'; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LIGHTBOX
+════════════════════════════════════════════════════════════ */
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONFIRM MODAL
+════════════════════════════════════════════════════════════ */
+function showConfirm(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  const btn = document.getElementById('confirm-ok-btn');
+  btn.onclick = () => { closeModal('confirm-modal'); onOk(); };
+  document.getElementById('confirm-modal').classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ════════════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════════════ */
+function showToast(msg, type = 'info') {
+  const icons = { success:'✅', error:'⛔', warning:'⚠', info:'ℹ' };
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => el.remove(), 300);
+  }, 3500);
+}
+
+/* ════════════════════════════════════════════════════════════
+   DEMO DATA
+════════════════════════════════════════════════════════════ */
+function loadDemoData() {
+  const demos = [
+    {
+      id: 'demo1', timestamp: new Date(Date.now() - 86400000 * 1).toISOString(),
+      client: 'Petroquímica Nordeste S.A.', os: 'OS-2024-0312', tech: 'Carlos Eduardo',
+      model: 'Peak 150 — 100A', location: 'Unidade de Refino — Bomba P-301',
+      desc: 'Drive em trip constante por sobrecorrente. Motor da bomba de transferência.',
+      notes: 'Substituído cabo de saída danificado. Drive resetado e testado por 30min sem falhas.',
+      photos: [], faults: ['OC', 'F001'], params: [
+        { num:'P01', name:'Frequência de Saída', value:'48.5', unit:'Hz' },
+        { num:'P03', name:'Corrente de Saída', value:'98.2', unit:'A' },
+        { num:'P04', name:'Tensão do Barramento DC', value:'536', unit:'V' },
+        { num:'P05', name:'Temperatura do Dissipador', value:'62', unit:'°C' },
+      ]
+    },
+    {
+      id: 'demo2', timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
+      client: 'Têxtil Progresso Ltda.', os: 'OS-2024-0287', tech: 'Ana Paula',
+      model: 'Peak 150 — 20A', location: 'Linha de Tingimento — Motor M-12',
+      desc: 'Drive exibindo advertência de temperatura. Operação intermitente.',
+      notes: 'Limpeza do filtro de ar e substituição do ventilador interno. Temperatura normalizada.',
+      photos: [], faults: ['OH', 'E01'], params: [
+        { num:'P01', name:'Frequência de Saída', value:'50.0', unit:'Hz' },
+        { num:'P03', name:'Corrente de Saída', value:'18.7', unit:'A' },
+        { num:'P05', name:'Temperatura do Dissipador', value:'78', unit:'°C' },
+      ]
+    },
+    {
+      id: 'demo3', timestamp: new Date(Date.now() - 86400000 * 5).toISOString(),
+      client: 'Mineração Vale Verde', os: 'OS-2024-0265', tech: 'Roberto Silva',
+      model: 'Peak 150 — 150A', location: 'Britador Primário — Correia Transportadora',
+      desc: 'Falha de fase detectada. Drive não parte.',
+      notes: 'Fusível F3 queimado. Substituído. Verificado contator principal — contato C2 com oxidação. Limpado e testado.',
+      photos: [], faults: ['PH', 'F003'], params: [
+        { num:'P01', name:'Frequência de Saída', value:'0.0', unit:'Hz' },
+        { num:'P03', name:'Corrente de Saída', value:'0.0', unit:'A' },
+        { num:'P04', name:'Tensão do Barramento DC', value:'0', unit:'V' },
+      ]
+    },
+    {
+      id: 'demo4', timestamp: new Date(Date.now() - 86400000 * 7).toISOString(),
+      client: 'Frigorífico Central Oeste', os: 'OS-2024-0241', tech: 'Marcos Oliveira',
+      model: 'Peak 150 — 30A', location: 'Câmara Fria 4 — Compressor',
+      desc: 'Comissionamento de novo drive. Substituição preventiva.',
+      notes: 'Drive instalado e comissionado. Parâmetros do motor configurados conforme plaqueta. Teste de carga realizado com sucesso.',
+      photos: [], faults: [], params: [
+        { num:'P01', name:'Frequência de Saída', value:'60.0', unit:'Hz' },
+        { num:'P02', name:'Tensão de Saída', value:'380', unit:'V' },
+        { num:'P03', name:'Corrente de Saída', value:'27.4', unit:'A' },
+        { num:'P05', name:'Temperatura do Dissipador', value:'41', unit:'°C' },
+        { num:'P06', name:'Velocidade do Motor', value:'1780', unit:'RPM' },
+        { num:'P11', name:'Tensão Nominal do Motor', value:'380', unit:'V' },
+        { num:'P12', name:'Corrente Nominal do Motor', value:'28.0', unit:'A' },
+        { num:'P13', name:'Frequência Nominal', value:'60', unit:'Hz' },
+        { num:'P14', name:'Velocidade Nominal', value:'1800', unit:'RPM' },
+        { num:'P15', name:'Potência Nominal', value:'15.0', unit:'kW' },
+      ]
+    },
+    {
+      id: 'demo5', timestamp: new Date(Date.now() - 86400000 * 10).toISOString(),
+      client: 'Cimento Nacional S.A.', os: 'OS-2024-0198', tech: 'Fernanda Costa',
+      model: 'Peak 150 — 75A', location: 'Moinho de Cru — Motor Principal',
+      desc: 'Sobretensão no barramento DC. Trip em desaceleração.',
+      notes: 'Ajustado P10 (tempo de desaceleração) de 5s para 20s. Instalado resistor de frenagem 1kW. Problema resolvido.',
+      photos: [], faults: ['OV', 'F002'], params: [
+        { num:'P01', name:'Frequência de Saída', value:'49.8', unit:'Hz' },
+        { num:'P03', name:'Corrente de Saída', value:'71.2', unit:'A' },
+        { num:'P04', name:'Tensão do Barramento DC', value:'812', unit:'V' },
+        { num:'P09', name:'Tempo de Aceleração', value:'15', unit:'s' },
+        { num:'P10', name:'Tempo de Desaceleração', value:'20', unit:'s' },
+      ]
+    }
+  ];
+
+  const existing = getBackups();
+  const existingIds = new Set(existing.map(b => b.id));
+  const toAdd = demos.filter(d => !existingIds.has(d.id));
+
+  if (!toAdd.length) {
+    showToast('Dados demo já carregados anteriormente.', 'info');
+    return;
+  }
+
+  saveBackups([...existing, ...toAdd]);
+  updateBadgeCount();
+  showToast('✅ ' + toAdd.length + ' backups de demonstração carregados!', 'success');
+  updateAboutInfo();
+}
+
+/* ════════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeLightbox();
+    closeModal('confirm-modal');
+  }
+});
+</script>
+</body>
+</html>
